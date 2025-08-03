@@ -1,10 +1,10 @@
 # Service Bus Explorer Cross-Platform
 
-🚀 A modern, cross-platform Azure Service Bus management tool built with .NET 8 and Avalonia UI.
+A modern, cross-platform Azure Service Bus management tool built with .NET 8 and Avalonia UI.
 
-<img width="1200" alt="Service Bus Explorer Screenshot" src="https://github.com/user-attachments/assets/screenshot-placeholder.png">
+<img width="1728" height="1084" alt="スクリーンショット 2025-08-03 21 44 19" src="https://github.com/user-attachments/assets/3eb3ada0-c27c-417b-a143-0610687b2dcb" />
 
-## ✨ Features
+## Features
 
 - **Cross-Platform**: Works on Windows, macOS, and Linux
 - **Modern UI**: Built with Avalonia UI for a native experience on all platforms
@@ -20,7 +20,7 @@
   - Detailed message properties and metadata
   - Application logging with filtering
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -99,7 +99,7 @@ dotnet run --project src/ServiceBusExplorer.UI
    - **Delete**: Select messages and press Delete or use the context menu
    - **Resubmit**: Send dead-letter messages back to the main queue
 
-## 🏗️ Architecture
+## Architecture
 
 The application follows a clean architecture pattern with clear separation of concerns:
 
@@ -118,47 +118,17 @@ The application follows a clean architecture pattern with clear separation of co
 - **Testing**: NUnit, FluentAssertions, Moq
 - **CI/CD**: GitHub Actions
 
-## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-### Development Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/haga0531/service-bus-explorer.git
-cd service-bus-explorer-crossplat
-
-# Restore dependencies
-dotnet restore
-
-# Run tests
-dotnet test
-
-# Run the application
-dotnet run --project src/ServiceBusExplorer.UI
-```
-
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🔒 Security
+## Security
 
 For security concerns, please see our [Security Policy](SECURITY.md).
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Inspired by the original [Service Bus Explorer](https://github.com/paolosalvatori/ServiceBusExplorer)
 - Built with [Avalonia UI](https://avaloniaui.net/)
 - Icons from [Avalonia UI Icons](https://avaloniaui.github.io/icons.html)
-
-## 📞 Support
-
-- 📋 [Report a Bug](https://github.com/yourusername/service-bus-explorer-crossplat/issues/new?template=bug_report.md)
-- 💡 [Request a Feature](https://github.com/yourusername/service-bus-explorer-crossplat/issues/new?template=feature_request.md)
-- 💬 [Discussions](https://github.com/yourusername/service-bus-explorer-crossplat/discussions)
-
----
-
-Made with ❤️ by the community
