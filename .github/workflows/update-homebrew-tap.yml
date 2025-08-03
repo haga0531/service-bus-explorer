@@ -27,7 +27,7 @@ jobs:
     - name: Checkout tap repo
       uses: actions/checkout@v4
       with:
-        repository: yourusername/homebrew-service-bus-explorer
+        repository: haga0531/homebrew-service-bus-explorer
         token: ${{ secrets.TAP_REPO_TOKEN }}
         path: tap
     
