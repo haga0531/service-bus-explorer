@@ -1,0 +1,91 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="using:ServiceBusExplorer.UI"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="500"
+        x:Class="ServiceBusExplorer.UI.EditMessageDialog"
+        x:DataType="local:EditMessageDialogViewModel"
+        Title="Edit &amp; Resend Message"
+        Width="600"
+        Height="500"
+        WindowStartupLocation="CenterOwner">
+    
+    <Grid Margin="20" RowDefinitions="Auto,Auto,*,Auto,Auto">
+        
+        <!-- Original Message Info -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+            <TextBlock Text="Original Message ID:" FontWeight="Bold" />
+            <TextBlock Text="{Binding OriginalMessageId}" 
+                       Foreground="Gray" 
+                       FontFamily="Consolas" />
+        </StackPanel>
+        
+        <!-- Content Type -->
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,*" Margin="0,0,0,10">
+            <TextBlock Text="Content Type:" 
+                       VerticalAlignment="Center" 
+                       Margin="0,0,10,0" />
+            <ComboBox Grid.Column="1" 
+                      SelectedItem="{Binding ContentType}"
+                      HorizontalAlignment="Stretch">
+                <ComboBox.Items>
+                    <x:String>application/json</x:String>
+                    <x:String>application/xml</x:String>
+                    <x:String>text/plain</x:String>
+                    <x:String>text/xml</x:String>
+                </ComboBox.Items>
+            </ComboBox>
+        </Grid>
+        
+        <!-- Message Body -->
+        <Border Grid.Row="2" 
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Margin="0,0,0,10">
+            <Grid RowDefinitions="Auto,*">
+                <!-- Toolbar -->
+                <StackPanel Grid.Row="0" 
+                            Orientation="Horizontal" 
+                            Margin="5"
+                            Spacing="5">
+                    <Button Content="Format JSON" 
+                            Command="{Binding FormatJsonCommand}"
+                            IsVisible="{Binding IsJsonContent}" />
+                    <Button Content="Validate" 
+                            Command="{Binding ValidateCommand}" />
+                </StackPanel>
+                
+                <!-- Text Editor -->
+                <ScrollViewer Grid.Row="1" 
+                              HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Auto">
+                    <TextBox Text="{Binding MessageBody}"
+                             AcceptsReturn="True"
+                             FontFamily="Cascadia Code,Consolas,Menlo,Monaco,monospace"
+                             FontSize="12"
+                             Margin="5" />
+                </ScrollViewer>
+            </Grid>
+        </Border>
+        
+        <!-- Delete Original Option -->
+        <CheckBox Grid.Row="3" 
+                  IsChecked="{Binding DeleteOriginal}"
+                  Content="Delete original message after sending"
+                  Margin="0,0,0,10" />
+        
+        <!-- Buttons -->
+        <StackPanel Grid.Row="4" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right"
+                    Spacing="10">
+            <Button Content="Cancel" 
+                    Command="{Binding CancelCommand}" />
+            <Button Content="Send as New" 
+                    Command="{Binding SendCommand}"
+                    Classes="accent" />
+        </StackPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,114 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="using:ServiceBusExplorer.UI"
+        xmlns:core="using:ServiceBusExplorer.Core"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="400"
+        x:Class="ServiceBusExplorer.UI.PurgeConfirmDialog"
+        x:DataType="local:PurgeConfirmDialogViewModel"
+        Title="Purge Messages"
+        Width="500"
+        Height="550"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+    
+    <Grid Margin="20" Background="#F9F9F9">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        
+        <StackPanel Grid.Row="0" Spacing="15">
+            <!-- Warning message -->
+            <Border Background="#FFF3E0" 
+                    BorderBrush="#FFB74D" 
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="10">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="⚠️" FontSize="24" VerticalAlignment="Center" />
+                    <TextBlock Text="Warning: This action cannot be undone!"
+                               FontWeight="Bold"
+                               FontSize="14"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+            
+            <!-- Entity info -->
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" VerticalAlignment="Top">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Queue/Topic:" FontWeight="Bold" Margin="0,0,10,5" />
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding EntityPath}" Margin="0,0,0,5" />
+                
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Total Messages:" FontWeight="Bold" Margin="0,0,10,5" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding TotalMessageCount}" Margin="0,0,0,5" />
+                
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Active Messages:" FontWeight="Bold" Margin="0,0,10,5" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ActiveMessageCount}" Foreground="Green" Margin="0,0,0,5" />
+                
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Dead Letter Messages:" FontWeight="Bold" Margin="0,0,10,0" />
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding DeadLetterMessageCount}" Foreground="Red" Margin="0,0,0,0" />
+            </Grid>
+            
+            <!-- Purge options -->
+            <Border Background="#F5F5F5" 
+                    BorderBrush="#E0E0E0" 
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="10">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Select messages to purge:" FontWeight="Bold" />
+                    
+                    <RadioButton Content="{Binding ActiveMessageCount, StringFormat='Active messages only ({0} messages)'}"
+                                 IsChecked="{Binding SelectedOption, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static core:PurgeOption.ActiveOnly}}"
+                                 IsEnabled="{Binding ActiveMessageCount}" />
+                    
+                    <RadioButton Content="{Binding DeadLetterMessageCount, StringFormat='Dead letter messages only ({0} messages)'}"
+                                 IsChecked="{Binding SelectedOption, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static core:PurgeOption.DeadLetterOnly}}"
+                                 IsEnabled="{Binding DeadLetterMessageCount}" />
+                    
+                    <RadioButton Content="{Binding TotalMessageCount, StringFormat='All messages ({0} total)'}"
+                                 IsChecked="{Binding SelectedOption, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static core:PurgeOption.All}}" />
+                </StackPanel>
+            </Border>
+            
+            <!-- Confirmation -->
+            <StackPanel Spacing="10">
+                <Border Background="#FFEBEE" 
+                        BorderBrush="#F44336" 
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="10"
+                        IsVisible="{Binding MessagesToPurgeCount}">
+                    <TextBlock Text="{Binding MessagesToPurgeCount, StringFormat='⚠️ This will permanently delete {0} messages'}"
+                               FontWeight="Bold"
+                               Foreground="#D32F2F"
+                               FontSize="14" />
+                </Border>
+                
+                <CheckBox Content="I understand this will permanently delete these messages and this action cannot be undone"
+                          IsChecked="{Binding ConfirmationChecked}"
+                          FontSize="13"
+                          FontWeight="Bold" />
+            </StackPanel>
+        </StackPanel>
+        
+        <!-- Buttons -->
+        <StackPanel Grid.Row="1" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right"
+                    Spacing="10">
+            <Button Content="Cancel"
+                    Command="{Binding CancelCommand}"
+                    Width="100"
+                    IsCancel="True" />
+            <Button Content="Purge Messages"
+                    Command="{Binding PurgeCommand}"
+                    Width="120"
+                    Background="#D32F2F"
+                    Foreground="White"
+                    FontWeight="Bold"
+                    IsDefault="True" />
+        </StackPanel>
+    </Grid>
+</Window>

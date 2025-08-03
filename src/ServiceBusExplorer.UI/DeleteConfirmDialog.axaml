@@ -1,0 +1,88 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="using:ServiceBusExplorer.UI"
+        xmlns:conv="using:ServiceBusExplorer.UI.Converters"
+        mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="250"
+        x:Class="ServiceBusExplorer.UI.DeleteConfirmDialog"
+        x:DataType="local:DeleteConfirmDialogViewModel"
+        Title="Delete Message"
+        Width="450"
+        Height="250"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+    
+    <Window.Resources>
+        <conv:StatusColorConverter x:Key="StatusColorConverter" />
+    </Window.Resources>
+    
+    <Grid Margin="20" Background="#F9F9F9">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        
+        <StackPanel Grid.Row="0" Spacing="15">
+            <!-- Warning message -->
+            <Border Background="#FFF3E0" 
+                    BorderBrush="#FFB74D" 
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="10">
+                <TextBlock Text="⚠️ Delete Message"
+                           FontWeight="Bold"
+                           Foreground="#FF9800"
+                           FontSize="16" />
+            </Border>
+            
+            <!-- Message Info -->
+            <StackPanel Spacing="10">
+                <TextBlock Text="Are you sure you want to delete this message?"
+                           FontSize="14" />
+                
+                <Border BorderBrush="LightGray"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="10"
+                        Background="White">
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="{Binding MessageId, StringFormat='Message ID: {0}'}"
+                                   FontFamily="Cascadia Code,Consolas,Menlo,Monaco,monospace"
+                                   FontSize="12" />
+                        <TextBlock Text="{Binding EntityPath, StringFormat='Queue/Topic: {0}'}"
+                                   FontFamily="Cascadia Code,Consolas,Menlo,Monaco,monospace"
+                                   FontSize="12" />
+                        <TextBlock Text="{Binding MessageType}"
+                                   FontFamily="Cascadia Code,Consolas,Menlo,Monaco,monospace"
+                                   FontSize="12"
+                                   Foreground="{Binding IsDeadLetter, Converter={StaticResource StatusColorConverter}}" />
+                    </StackPanel>
+                </Border>
+                
+                <TextBlock Text="This action cannot be undone."
+                           FontWeight="Bold"
+                           Foreground="#D32F2F"
+                           FontSize="13" />
+            </StackPanel>
+        </StackPanel>
+        
+        <!-- Buttons -->
+        <StackPanel Grid.Row="1" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right"
+                    Spacing="10">
+            <Button Content="Cancel"
+                    Command="{Binding CancelCommand}"
+                    Width="100"
+                    IsCancel="True" />
+            <Button Content="Delete"
+                    Command="{Binding DeleteCommand}"
+                    Width="100"
+                    Background="#F44336"
+                    Foreground="White"
+                    FontWeight="Bold"
+                    IsDefault="True" />
+        </StackPanel>
+    </Grid>
+</Window>

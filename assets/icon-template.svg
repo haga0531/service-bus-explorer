@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="225" fill="#0078D4"/>
+  
+  <!-- Service Bus Icon (simplified) -->
+  <g transform="translate(512, 512)">
+    <!-- Center circle -->
+    <circle cx="0" cy="0" r="120" fill="#FFFFFF"/>
+    
+    <!-- Connecting lines -->
+    <rect x="-250" y="-15" width="200" height="30" fill="#FFFFFF"/>
+    <rect x="50" y="-15" width="200" height="30" fill="#FFFFFF"/>
+    
+    <!-- Side circles -->
+    <circle cx="-280" cy="0" r="80" fill="#FFFFFF"/>
+    <circle cx="280" cy="0" r="80" fill="#FFFFFF"/>
+    
+    <!-- Top and bottom connections -->
+    <rect x="-15" y="-250" width="30" height="200" fill="#FFFFFF"/>
+    <rect x="-15" y="50" width="30" height="200" fill="#FFFFFF"/>
+    
+    <!-- Top and bottom circles -->
+    <circle cx="0" cy="-280" r="80" fill="#FFFFFF"/>
+    <circle cx="0" cy="280" r="80" fill="#FFFFFF"/>
+  </g>
+  
+  <!-- Text: SB -->
+  <text x="512" y="560" font-family="Arial, sans-serif" font-size="200" font-weight="bold" text-anchor="middle" fill="#0078D4">SB</text>
+</svg>

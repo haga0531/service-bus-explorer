@@ -1,0 +1,119 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:ServiceBusExplorer.UI"
+        x:Class="ServiceBusExplorer.UI.ResubmitConfirmDialog"
+        x:DataType="vm:ResubmitConfirmDialogViewModel"
+        Title="Confirm Resubmit"
+        Width="500"
+        Height="300"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+    
+    <Grid RowDefinitions="*,Auto" Margin="20">
+        <!-- Content -->
+        <StackPanel Grid.Row="0" Spacing="15">
+            <TextBlock FontSize="18" 
+                       FontWeight="Bold"
+                       IsVisible="{Binding !IsMultiple}"
+                       Text="Resubmit Message" />
+            
+            <TextBlock FontSize="18" 
+                       FontWeight="Bold"
+                       IsVisible="{Binding IsMultiple}">
+                <TextBlock.Text>
+                    <MultiBinding StringFormat="Resubmit {0} Messages">
+                        <Binding Path="MessageCount" />
+                    </MultiBinding>
+                </TextBlock.Text>
+            </TextBlock>
+            
+            <!-- Single message details -->
+            <Border Background="#F0F0F0" 
+                    BorderBrush="LightGray" 
+                    BorderThickness="1"
+                    Padding="10"
+                    CornerRadius="4"
+                    IsVisible="{Binding !IsMultiple}">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="100,*">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Message ID:" FontWeight="Bold" />
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding MessageId}" Margin="10,0,0,5" />
+                    
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Status:" FontWeight="Bold" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" 
+                               Text="{Binding MessageStatus}" 
+                               FontWeight="Bold"
+                               Margin="10,0,0,5">
+                        <TextBlock.Styles>
+                            <Style Selector="TextBlock">
+                                <Setter Property="Foreground" Value="Green" />
+                            </Style>
+                            <Style Selector="TextBlock[Text=Dead Letter]">
+                                <Setter Property="Foreground" Value="Red" />
+                            </Style>
+                        </TextBlock.Styles>
+                    </TextBlock>
+                    
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Queue/Topic:" FontWeight="Bold" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding EntityPath}" Margin="10,0,0,5" />
+                    
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Content Type:" FontWeight="Bold" />
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ContentType}" Margin="10,0,0,0" />
+                </Grid>
+            </Border>
+            
+            <!-- Multiple messages summary -->
+            <Border Background="#FFFFCC" 
+                    BorderBrush="#FFCC00" 
+                    BorderThickness="1"
+                    Padding="10"
+                    CornerRadius="4"
+                    IsVisible="{Binding IsMultiple}">
+                <StackPanel Spacing="5">
+                    <TextBlock FontSize="16" FontWeight="Bold">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="You have selected {0} dead letter messages for resubmit.">
+                                <Binding Path="MessageCount" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                    <TextBlock Text="This operation will resubmit all selected messages back to the main queue."
+                               FontSize="14"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+            
+            <TextBlock FontSize="14"
+                       IsVisible="{Binding !IsMultiple}"
+                       Text="Are you sure you want to resubmit this message?" />
+            
+            <TextBlock FontSize="14"
+                       FontWeight="Bold"
+                       IsVisible="{Binding IsMultiple}"
+                       Text="Are you sure you want to proceed?" />
+            
+            <!-- Dead Letter specific option -->
+            <CheckBox Content="Delete original message from Dead Letter queue after successful resubmit"
+                      IsChecked="{Binding DeleteFromDeadLetter}"
+                      IsVisible="{Binding IsDeadLetter}"
+                      Margin="0,10,0,0" />
+        </StackPanel>
+        
+        <!-- Buttons -->
+        <StackPanel Grid.Row="1" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right"
+                    Spacing="10">
+            <Button Content="Cancel"
+                    Command="{Binding CancelCommand}"
+                    Width="100"
+                    IsCancel="True" />
+            <Button Content="Resubmit"
+                    Command="{Binding ResubmitCommand}"
+                    Width="100"
+                    Background="#4CAF50"
+                    Foreground="White"
+                    FontWeight="Bold"
+                    IsDefault="True" />
+        </StackPanel>
+    </Grid>
+</Window>

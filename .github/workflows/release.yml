@@ -1,0 +1,188 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            runtime: win-x64
+            artifact: ServiceBusExplorer-win-x64
+          - os: ubuntu-latest
+            runtime: linux-x64
+            artifact: ServiceBusExplorer-linux-x64
+          - os: macos-latest
+            runtime: osx-x64
+            artifact: ServiceBusExplorer-osx-x64
+          - os: macos-latest
+            runtime: osx-arm64
+            artifact: ServiceBusExplorer-osx-arm64
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: "8.x"
+    
+    - name: Restore dependencies
+      run: dotnet restore
+    
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+    
+    - name: Test
+      run: dotnet test --configuration Release --no-build --verbosity normal
+    
+    - name: Publish (Windows/Linux - Single File)
+      if: matrix.os != 'macos-latest'
+      run: dotnet publish src/ServiceBusExplorer.UI/ServiceBusExplorer.UI.csproj --configuration Release --runtime ${{ matrix.runtime }} --self-contained true --output ./publish/${{ matrix.artifact }} -p:PublishSingleFile=true -p:DebugType=None -p:DebugSymbols=false
+    
+    - name: Publish (macOS - Regular Build)
+      if: matrix.os == 'macos-latest'
+      run: dotnet publish src/ServiceBusExplorer.UI/ServiceBusExplorer.UI.csproj --configuration Release --runtime ${{ matrix.runtime }} --self-contained true --output ./publish/${{ matrix.artifact }} -p:PublishSingleFile=false -p:DebugType=None -p:DebugSymbols=false
+    
+    - name: Create Archive (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cd publish
+        Compress-Archive -Path ${{ matrix.artifact }}/* -DestinationPath ${{ matrix.artifact }}.zip
+      shell: pwsh
+    
+    - name: Create macOS App Bundle
+      if: startsWith(matrix.os, 'macos')
+      run: |
+        set -e  # エラーが発生したら停止
+        
+        # 変数設定
+        APP_NAME="Service Bus Explorer"
+        SOURCE_DIR="./publish/${{ matrix.artifact }}"
+        APP_DIR="${SOURCE_DIR}/${APP_NAME}.app"
+        
+        # 実行ファイルが存在することを確認
+        if [ ! -f "${SOURCE_DIR}/ServiceBusExplorer.UI" ]; then
+          echo "Error: ServiceBusExplorer.UI not found in ${SOURCE_DIR}"
+          ls -la "${SOURCE_DIR}"
+          exit 1
+        fi
+        
+        # 実行権限を設定
+        chmod +x "${SOURCE_DIR}/ServiceBusExplorer.UI"
+        
+        # .app バンドル構造を作成
+        mkdir -p "${APP_DIR}/Contents/MacOS"
+        mkdir -p "${APP_DIR}/Contents/Resources"
+        
+        # 必要なファイルをコピー
+        cp -R "${SOURCE_DIR}"/* "${APP_DIR}/Contents/MacOS/"
+        
+        # .app自体が再帰的にコピーされるのを防ぐ
+        rm -rf "${APP_DIR}/Contents/MacOS/${APP_NAME}.app"
+        
+        # Info.plist を作成
+        cat > "${APP_DIR}/Contents/Info.plist" << 'PLIST_EOF'
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>CFBundleExecutable</key>
+            <string>ServiceBusExplorer.UI</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.servicebus.explorer</string>
+            <key>CFBundleName</key>
+            <string>Service Bus Explorer</string>
+            <key>CFBundleDisplayName</key>
+            <string>Service Bus Explorer</string>
+            <key>CFBundleVersion</key>
+            <string>1.0.5</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0.5</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>CFBundleSignature</key>
+            <string>????</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>10.15</string>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+            <key>NSAppleEventsUsageDescription</key>
+            <string>This app needs to control other apps to function properly.</string>
+            <key>NSHumanReadableCopyright</key>
+            <string>Copyright © 2024 Service Bus Explorer Contributors</string>
+        </dict>
+        </plist>
+        PLIST_EOF
+        
+        # アイコンファイルを作成（簡易版）
+        touch "${APP_DIR}/Contents/Resources/AppIcon.icns"
+        
+        # 実行権限を確認
+        chmod +x "${APP_DIR}/Contents/MacOS/ServiceBusExplorer.UI"
+        
+        # すべての.dylibファイルにも実行権限を付与
+        find "${APP_DIR}/Contents/MacOS" -name "*.dylib" -exec chmod +x {} \;
+        
+        # .appバンドルが作成されたか確認
+        if [ -d "${APP_DIR}" ]; then
+          echo "Successfully created ${APP_NAME}.app"
+          ls -la "${APP_DIR}/Contents/MacOS/"
+          
+          # アドホック署名を追加（署名なしよりも安全）
+          codesign --force --deep --sign - "${APP_DIR}" || echo "Warning: codesign failed, but continuing..."
+          
+          # 隔離属性を事前に削除
+          xattr -cr "${APP_DIR}" || true
+        else
+          echo "Failed to create .app bundle"
+          exit 1
+        fi
+        
+    - name: Create Archive (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        cd publish
+        tar -czf ${{ matrix.artifact }}.tar.gz ${{ matrix.artifact }}
+        
+    - name: Create Archive (macOS)
+      if: startsWith(matrix.os, 'macos')
+      run: |
+        cd publish
+        # .appバンドルを含むディレクトリ全体をアーカイブ
+        tar -czf ${{ matrix.artifact }}.tar.gz -C ${{ matrix.artifact }} "Service Bus Explorer.app"
+    
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact }}
+        path: |
+          publish/*.zip
+          publish/*.tar.gz
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: artifacts/**/*
+        generate_release_notes: true
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

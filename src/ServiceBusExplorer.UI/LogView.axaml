@@ -1,0 +1,118 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:ServiceBusExplorer.UI"
+             xmlns:converters="clr-namespace:ServiceBusExplorer.UI.Converters"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="200"
+             x:Class="ServiceBusExplorer.UI.LogView"
+             x:DataType="vm:LogViewModel">
+    
+    <UserControl.Resources>
+        <converters:LogLevelColorConverter x:Key="LogLevelColorConverter" />
+    </UserControl.Resources>
+    
+    <Grid RowDefinitions="Auto,*">
+        <!-- Header -->
+        <Border Grid.Row="0" 
+                Background="#F5F5F5" 
+                BorderBrush="#CCCCCC" 
+                BorderThickness="0,1,0,1"
+                Padding="8,4">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto,Auto">
+                <TextBlock Grid.Column="0" 
+                           Text="Logs" 
+                           FontWeight="Bold" 
+                           VerticalAlignment="Center"
+                           Margin="0,0,12,0" />
+                
+                <ComboBox Grid.Column="1" 
+                          ItemsSource="{Binding LogLevels}"
+                          SelectedItem="{Binding SelectedLogLevel}"
+                          Width="80"
+                          Height="24"
+                          VerticalAlignment="Center"
+                          Margin="0,0,8,0" />
+                
+                <TextBox Grid.Column="2" 
+                         Text="{Binding SearchText}"
+                         Watermark="Search..."
+                         Width="200"
+                         Height="24"
+                         VerticalAlignment="Center"
+                         Margin="0,0,8,0" />
+                
+                <Button Grid.Column="3" 
+                        Content="Clear"
+                        Command="{Binding ClearLogsCommand}"
+                        Height="24"
+                        Padding="12,0"
+                        VerticalAlignment="Center"
+                        Margin="0,0,8,0" />
+                
+                <TextBlock Grid.Column="5" 
+                           Text="{Binding Logs.Count}" 
+                           VerticalAlignment="Center"
+                           Margin="0,0,4,0" />
+                
+                <TextBlock Grid.Column="6" 
+                           Text="entries" 
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0" />
+                
+                <Button Grid.Column="7" 
+                        Command="{Binding ToggleExpandCommand}"
+                        Content="▼"
+                        Width="24"
+                        Height="24"
+                        Padding="0"
+                        VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+        
+        <!-- Log Content -->
+        <Border Grid.Row="1" 
+                Background="#FFFFFF"
+                IsVisible="{Binding IsExpanded}">
+            <ScrollViewer Name="LogScrollViewer"
+                          HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Logs}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border BorderBrush="#F0F0F0" 
+                                    BorderThickness="0,0,0,1"
+                                    Padding="8,2">
+                                <Grid ColumnDefinitions="Auto,Auto,Auto,*">
+                                    <TextBlock Grid.Column="0" 
+                                               Text="{Binding FormattedTime}"
+                                               FontFamily="Consolas,Courier New,monospace"
+                                               Foreground="#888888"
+                                               Margin="0,0,8,0" />
+                                    
+                                    <TextBlock Grid.Column="1" 
+                                               Text="{Binding Level}"
+                                               FontFamily="Consolas,Courier New,monospace"
+                                               Width="60"
+                                               Margin="0,0,8,0"
+                                               Foreground="{Binding Level, Converter={StaticResource LogLevelColorConverter}}" />
+                                    
+                                    <TextBlock Grid.Column="2" 
+                                               Text="{Binding Source}"
+                                               FontFamily="Consolas,Courier New,monospace"
+                                               Foreground="#666666"
+                                               Margin="0,0,8,0" />
+                                    
+                                    <TextBlock Grid.Column="3" 
+                                               Text="{Binding FormattedMessage}"
+                                               FontFamily="Consolas,Courier New,monospace"
+                                               TextWrapping="Wrap" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>

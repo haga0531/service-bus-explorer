@@ -1,0 +1,67 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:ServiceBusExplorer.UI"
+        x:Class="ServiceBusExplorer.UI.ConnectDialog"
+        x:DataType="vm:ConnectDialogViewModel"
+        Title="Connect to Service Bus"
+        Width="500" Height="250"
+        WindowStartupLocation="CenterOwner">
+    
+    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,*,Auto">
+        <!-- Connection string input -->
+        <TextBlock Grid.Row="0" Text="Connection String:" Margin="0,0,0,8" />
+        <TextBox Grid.Row="1" 
+                 Text="{Binding ConnectionString}"
+                 Watermark="Endpoint=sb://xxx.servicebus.windows.net/;SharedAccessKeyName=..."
+                 Margin="0,0,0,8"
+                 IsEnabled="{Binding !IsConnecting}" />
+        
+        <!-- Error message -->
+        <Border Grid.Row="2" 
+                Background="#FFFFCC" 
+                Padding="8,4"
+                BorderBrush="#FFCC00" 
+                BorderThickness="1"
+                CornerRadius="4"
+                Margin="0,0,0,16"
+                IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <TextBlock Text="{Binding ErrorMessage}" 
+                       Foreground="#CC0000"
+                       TextWrapping="Wrap" />
+        </Border>
+        
+        <!-- Spacer -->
+        <Panel Grid.Row="3" />
+        
+        <!-- Buttons -->
+        <StackPanel Grid.Row="4" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right"
+                    Spacing="8">
+            <ProgressBar IsIndeterminate="True" 
+                         Width="100"
+                         Height="3"
+                         VerticalAlignment="Center"
+                         IsVisible="{Binding IsConnecting}" />
+            <Button Content="Cancel" 
+                    Command="{Binding CancelCommand}"
+                    IsEnabled="{Binding !IsConnecting}" />
+            <Button Content="Connect" 
+                    Command="{Binding ConnectCommand}"
+                    IsDefault="True"
+                    Classes="accent"
+                    IsEnabled="{Binding !IsConnecting}">
+                <Button.IsVisible>
+                    <Binding Path="IsConnecting" Converter="{x:Static BoolConverters.Not}" />
+                </Button.IsVisible>
+            </Button>
+            <Button Content="Connecting..." 
+                    IsEnabled="False"
+                    Classes="accent">
+                <Button.IsVisible>
+                    <Binding Path="IsConnecting" />
+                </Button.IsVisible>
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,50 @@
+# Global AnalyzerConfig file
+is_global = true
+
+# CA1031: Do not catch general exception types
+dotnet_diagnostic.CA1031.severity = suggestion
+
+# CA1062: Validate arguments of public methods
+dotnet_diagnostic.CA1062.severity = suggestion
+
+# CA1303: Do not pass literals as localized parameters
+dotnet_diagnostic.CA1303.severity = none
+
+# CA2007: Do not directly await a Task
+dotnet_diagnostic.CA2007.severity = none
+
+# CA1822: Mark members as static
+dotnet_diagnostic.CA1822.severity = suggestion
+
+# CA1812: Avoid uninstantiated internal classes
+dotnet_diagnostic.CA1812.severity = suggestion
+
+# IDE0090: Use 'new(...)'
+dotnet_diagnostic.IDE0090.severity = suggestion
+
+# IDE0060: Remove unused parameter
+dotnet_diagnostic.IDE0060.severity = warning
+
+# IDE0005: Using directive is unnecessary
+dotnet_diagnostic.IDE0005.severity = warning
+
+# CS8618: Non-nullable field is uninitialized
+dotnet_diagnostic.CS8618.severity = warning
+
+# CS8602: Dereference of a possibly null reference
+dotnet_diagnostic.CS8602.severity = warning
+
+# CS8604: Possible null reference argument
+dotnet_diagnostic.CS8604.severity = warning
+
+# CS1591: Missing XML comment for publicly visible type or member
+dotnet_diagnostic.CS1591.severity = none
+
+# CS1574: XML comment has cref attribute that could not be resolved
+dotnet_diagnostic.CS1574.severity = none
+
+# SA1600: Elements should be documented
+dotnet_diagnostic.SA1600.severity = none
+
+# SA1601: Partial elements should be documented
+dotnet_diagnostic.SA1601.severity = none

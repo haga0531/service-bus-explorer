@@ -1,0 +1,405 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ServiceBusExplorer.UI"
+             xmlns:models="clr-namespace:ServiceBusExplorer.UI.Models"
+             xmlns:conv="clr-namespace:ServiceBusExplorer.UI.Converters"
+             xmlns:view="clr-namespace:ServiceBusExplorer.UI"
+             x:Class="ServiceBusExplorer.UI.MessageListView"
+             x:DataType="vm:MessageListViewModel">
+    
+    <UserControl.Resources>
+        <conv:StatusColorConverter x:Key="StatusColorConverter" />
+    </UserControl.Resources>
+
+    <Grid>
+        <!-- Main content -->
+        <Grid RowDefinitions="Auto,Auto,*,5,Auto">
+        <!-- Count labels with Send Message button -->
+        <Border Grid.Row="0" 
+                Background="#F5F5F5" 
+                Padding="8,4"
+                BorderBrush="LightGray" 
+                BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="20">
+                    <TextBlock Foreground="Green" FontWeight="Bold" VerticalAlignment="Center">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="Active: {0:N0}">
+                                <Binding Path="ActiveCount" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                    <TextBlock Foreground="Gray" VerticalAlignment="Center" Text="|" />
+                    <TextBlock Foreground="Red" FontWeight="Bold" VerticalAlignment="Center">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="Dead Letter: {0:N0}">
+                                <Binding Path="DeadLetterCount" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                    <TextBlock Foreground="Gray" VerticalAlignment="Center" Text="|" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Filter:" 
+                                   VerticalAlignment="Center" />
+                        <ComboBox ItemsSource="{Binding MessageFilterOptions}"
+                                  SelectedItem="{Binding MessageFilter}"
+                                  Width="100"
+                                  Height="26"
+                                  VerticalAlignment="Center" />
+                    </StackPanel>
+
+                </StackPanel>
+                                        <StackPanel Grid.Column="1" 
+                                    Orientation="Horizontal" 
+                                    Spacing="8">
+                            <Button ToolTip.Tip="Refresh"
+                                    Command="{Binding RefreshCommand}"
+                                    Width="32"
+                                    Height="26"
+                                    Padding="4"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="↻" 
+                                           FontSize="16"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Center" />
+                            </Button>
+                            <Button Content="Purge"
+                                    ToolTip.Tip="Purge messages from this queue/topic"
+                                    Command="{Binding PurgeCommand}"
+                                    Background="#D32F2F"
+                                    Foreground="White"
+                                    FontWeight="Bold"
+                                    Padding="8,4"
+                                    VerticalAlignment="Center"
+                                    IsEnabled="{Binding MessageCount, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                            <Button Content="Send Message" 
+                                    Command="{Binding SendMessageCommand}"
+                                    VerticalAlignment="Center"/>
+                            <Button Content="Bulk Resubmit" 
+                                    Command="{Binding BulkResubmitCommand}"
+                                    VerticalAlignment="Center"
+                                    Background="#4CAF50"
+                                    Foreground="White"
+                                    FontWeight="Bold"
+                                    Padding="8,4"
+                                    IsVisible="{Binding HasSelectedMessages}" />
+                            <TextBlock Text="{Binding SelectedCount, StringFormat='{}{0} selected'}"
+                                       VerticalAlignment="Center"
+                                       FontWeight="Bold"
+                                       IsVisible="{Binding HasSelectedMessages}" />
+                        </StackPanel>
+            </Grid>
+        </Border>
+        
+        <!-- Error message -->
+        <Border Grid.Row="1" 
+                Background="#FFFFCC" 
+                Padding="8,4"
+                BorderBrush="#FFCC00" 
+                BorderThickness="0,0,0,1"
+                IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <TextBlock Text="{Binding ErrorMessage}" 
+                       Foreground="#CC0000"
+                       TextWrapping="Wrap" />
+        </Border>
+        
+        <!-- Message list container with synchronized scrolling -->
+        <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <Grid RowDefinitions="Auto,*">
+                <!-- Header -->
+                <Border Grid.Row="0" Background="#E0E0E0" BorderBrush="Gray" BorderThickness="0,0,0,1">
+                    <Grid Margin="8,5,20,5" Width="1020">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="40"/>
+                            <ColumnDefinition Width="300"/>
+                            <ColumnDefinition Width="180"/>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="400"/>
+                        </Grid.ColumnDefinitions>
+                        <CheckBox Grid.Column="0" 
+                                  IsChecked="{Binding IsAllSelected}"
+                                  ToolTip.Tip="Select/Deselect All"
+                                  HorizontalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Text="Message ID" FontWeight="Bold" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="2" Text="Enqueued Time" FontWeight="Bold" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="3" Text="Status" FontWeight="Bold" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="4" Text="Message Text" FontWeight="Bold" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+                
+                <!-- Message List -->
+                <ListBox Grid.Row="1"
+                         ItemsSource="{Binding Messages}"
+                         SelectedItem="{Binding SelectedMessage}"
+                         Background="White"
+                         BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            <ListBox.Styles>
+                                <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="#E3F2FD" />
+                                </Style>
+                                <Style Selector="ListBoxItem">
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                </Style>
+                            </ListBox.Styles>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="LightGray" BorderThickness="0,0,0,1" 
+                                            Background="Transparent">
+                                        <Grid Margin="8,5,20,5" Width="1020">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="40"/>
+                                                <ColumnDefinition Width="300"/>
+                                                <ColumnDefinition Width="180"/>
+                                                <ColumnDefinition Width="100"/>
+                                                <ColumnDefinition Width="400"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox Grid.Column="0" 
+                                                      IsChecked="{Binding IsSelected}"
+                                                      VerticalAlignment="Center"
+                                                      HorizontalAlignment="Center" />
+                                            <TextBlock Grid.Column="1" 
+                                                       Text="{Binding MessageId}"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTip.Tip="{Binding MessageId}" />
+                                            <TextBlock Grid.Column="2" 
+                                                       Text="{Binding EnqueuedTime, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}"
+                                                       VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="3" 
+                                                       Text="{Binding Status}" 
+                                                       Foreground="{Binding IsDeadLetter, Converter={StaticResource StatusColorConverter}}"
+                                                       FontWeight="Bold"
+                                                       VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="4" 
+                                                       Text="{Binding Body}"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTip.Tip="{Binding Body}"
+                                                       MaxLines="1"
+                                                       TextWrapping="NoWrap" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+            </Grid>
+        </ScrollViewer>
+        
+        <!-- GridSplitter for Message List -->
+        <GridSplitter Grid.Row="3" 
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch"
+                      Background="LightGray"
+                      ResizeDirection="Rows"
+                      ShowsPreview="True" />
+        
+        <!-- Bottom section with fixed Pagination and flexible Message Details -->
+        <Grid Grid.Row="4" RowDefinitions="40,*">
+            <!-- Pagination Controls -->
+            <Grid Grid.Row="0">
+                <Border Background="#F5F5F5"
+                        BorderBrush="LightGray"
+                        BorderThickness="0,1,0,1"
+                        HorizontalAlignment="Stretch" />
+                <Border Padding="8"
+                        HorizontalAlignment="Center">
+            <Grid ColumnDefinitions="Auto,Auto,Auto">
+                <!-- Left side - Page navigation -->
+                <StackPanel Grid.Column="0" 
+                            Orientation="Horizontal" 
+                            Spacing="5"
+                            HorizontalAlignment="Left">
+                    <Button Content="&lt;&lt;"
+                            ToolTip.Tip="First page"
+                            Command="{Binding GoToFirstPageCommand}"
+                            IsEnabled="{Binding CanGoToPreviousPage}"
+                            Padding="8,4"
+                            MinWidth="40" />
+                    <Button Content="&lt;"
+                            ToolTip.Tip="Previous page"
+                            Command="{Binding GoToPreviousPageCommand}"
+                            IsEnabled="{Binding CanGoToPreviousPage}"
+                            Padding="8,4"
+                            MinWidth="40" />
+                </StackPanel>
+                
+                <!-- Center - Page info -->
+                <StackPanel Grid.Column="1" 
+                            Orientation="Horizontal" 
+                            Spacing="10"
+                            VerticalAlignment="Center"
+                            Margin="20,0">
+                    <TextBlock Text="Page"
+                               VerticalAlignment="Center" />
+                    <TextBlock VerticalAlignment="Center"
+                               FontWeight="Bold">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="{}{0} of {1}">
+                                <Binding Path="CurrentPage" />
+                                <Binding Path="TotalPages" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                </StackPanel>
+                
+                <!-- Right side - Next page and page info -->
+                <StackPanel Grid.Column="2" 
+                            Orientation="Horizontal" 
+                            Spacing="10"
+                            HorizontalAlignment="Right">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="5"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="Show:"
+                                   VerticalAlignment="Center" />
+                        <ComboBox ItemsSource="{Binding PageSizeOptions}"
+                                  SelectedItem="{Binding PageSize}"
+                                  Width="70"
+                                  VerticalAlignment="Center" />
+                        <TextBlock Text="messages"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Text="|"
+                               Foreground="Gray"
+                               VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding PageInfo}"
+                               VerticalAlignment="Center" />
+                    <Button Content="&gt;"
+                            ToolTip.Tip="Next page"
+                            Command="{Binding GoToNextPageCommand}"
+                            IsEnabled="{Binding CanGoToNextPage}"
+                            Padding="8,4"
+                            MinWidth="40" />
+                    <Button Content="&gt;&gt;"
+                            ToolTip.Tip="Last page"
+                            Command="{Binding GoToLastPageCommand}"
+                            IsEnabled="{Binding CanGoToNextPage}"
+                            Padding="8,4"
+                            MinWidth="40" />
+                </StackPanel>
+                </Grid>
+                </Border>
+            </Grid>
+            
+            <!-- Message Details -->
+            <Border Grid.Row="1" 
+                Background="#F8F8F8"
+                BorderBrush="LightGray"
+                BorderThickness="0,1,0,0">
+            <Grid>
+                <!-- Show when no message is selected -->
+                <TextBlock Text="Select a message to view details"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Foreground="Gray"
+                           FontSize="14"
+                           IsVisible="{Binding SelectedMessage, Converter={x:Static ObjectConverters.IsNull}}" />
+                           
+                <!-- Show when a message is selected -->
+                <Grid IsVisible="{Binding SelectedMessage, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <Grid RowDefinitions="Auto,*" Margin="10">
+                        <!-- Message Info Header -->
+                        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto,Auto" Margin="0,0,0,10">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Message ID: " FontWeight="Bold" Margin="0,0,5,5" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedMessage.MessageId}" Margin="0,0,20,5" />
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Status: " FontWeight="Bold" Margin="0,0,5,5" />
+                            <TextBlock Grid.Row="0" Grid.Column="3" 
+                                       Text="{Binding SelectedMessage.Status}" 
+                                       Foreground="{Binding SelectedMessage.IsDeadLetter, Converter={StaticResource StatusColorConverter}}"
+                                       FontWeight="Bold"
+                                       Margin="0,0,0,5" />
+                                       
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Label: " FontWeight="Bold" Margin="0,0,5,5" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedMessage.Label}" Margin="0,0,20,5" />
+                            <TextBlock Grid.Row="1" Grid.Column="2" Text="Content Type: " FontWeight="Bold" Margin="0,0,5,5" />
+                            <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding SelectedMessage.ContentType}" Margin="0,0,0,5" />
+                            
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Enqueued: " FontWeight="Bold" Margin="0,0,5,0" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding SelectedMessage.EnqueuedTime}" />
+                        </Grid>
+                        
+                        <!-- Message Body -->
+                        <Grid Grid.Row="1" RowDefinitions="Auto,*">
+                            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto" Margin="0,0,0,5">
+                                <TextBlock Grid.Column="0" Text="Message Body:" FontWeight="Bold" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Left" Margin="10,0,0,0">
+                                    <TextBlock Text="(Auto-formatted)" 
+                                               Foreground="Green"
+                                               FontWeight="Bold"
+                                               VerticalAlignment="Center"
+                                               IsVisible="{Binding FormattedMessageBody, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                                </StackPanel>
+                                <Button Grid.Column="2" 
+                                        Content="Format" 
+                                        Command="{Binding FormatMessageBodyCommand}"
+                                        Margin="0,0,5,0"
+                                        Padding="8,4"
+                                        ToolTip.Tip="Format JSON/XML" />
+                                <Button Grid.Column="3" 
+                                        Content="Copy" 
+                                        Command="{Binding CopyMessageBodyCommand}"
+                                        Margin="0,0,5,0"
+                                        Padding="8,4"
+                                        ToolTip.Tip="Copy message body to clipboard" />
+                                <Button Grid.Column="4" 
+                                        Content="Edit &amp; Resend" 
+                                        Command="{Binding EditAndResendCommand}"
+                                        Margin="0,0,5,0"
+                                        Padding="8,4"
+                                        Background="#2196F3"
+                                        Foreground="White"
+                                        FontWeight="Bold"
+                                        ToolTip.Tip="Edit and resend this message" 
+                                        IsEnabled="{Binding SelectedMessage, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                                <Button Grid.Column="5" 
+                                        Content="Resubmit" 
+                                        Command="{Binding ResubmitMessageCommand}"
+                                        Margin="0,0,5,0"
+                                        Padding="8,4"
+                                        Background="#4CAF50"
+                                        Foreground="White"
+                                        FontWeight="Bold"
+                                        ToolTip.Tip="Resubmit this message" 
+                                        IsEnabled="{Binding SelectedMessage, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                                <Button Grid.Column="6" 
+                                        Content="Delete" 
+                                        Command="{Binding DeleteMessageCommand}"
+                                        Padding="8,4"
+                                        Background="#F44336"
+                                        Foreground="White"
+                                        FontWeight="Bold"
+                                        ToolTip.Tip="Delete this message" 
+                                        IsEnabled="{Binding SelectedMessage, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                            </Grid>
+                            <Border Grid.Row="1" 
+                                    BorderBrush="LightGray" 
+                                    BorderThickness="1"
+                                    Background="White">
+                                <ScrollViewer>
+                                    <TextBox Text="{Binding FormattedMessageBody}"
+                                             IsReadOnly="True"
+                                             AcceptsReturn="True"
+                                             TextWrapping="NoWrap"
+                                             FontFamily="Cascadia Code,Consolas,Menlo,Monaco,monospace"
+                                             FontSize="13"
+                                             Padding="8"
+                                             Background="White" />
+                                </ScrollViewer>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Border>
+        </Grid>
+        </Grid>
+        
+        <!-- Loading Overlay -->
+        <view:LoadingOverlay DataContext="{Binding}"
+                             IsVisible="{Binding IsLoading}" />
+    </Grid>
+</UserControl>

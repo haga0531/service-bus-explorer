@@ -1,0 +1,54 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- 基本設定 -->
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+
+    <!-- Avalonia 共通 -->
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <AvaloniaUseCompiledXaml>true</AvaloniaUseCompiledXaml>   <!-- ★ Compiled XAML を生成 -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!-- COM サポート（Win 環境向け）-->
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- UI パッケージ -->
+    <PackageReference Include="Avalonia"                    Version="11.3.2" />
+    <PackageReference Include="Avalonia.Desktop"            Version="11.3.2" />
+    <PackageReference Include="Avalonia.Controls.DataGrid"  Version="11.3.2" />
+    <PackageReference Include="Avalonia.Themes.Fluent"      Version="11.3.2" />
+    <PackageReference Include="Avalonia.Fonts.Inter"        Version="11.3.2" />
+    <PackageReference Include="Avalonia.ReactiveUI"         Version="11.3.2" />
+
+    <!-- Debug ビルド時のみ UI インスペクタを含める -->
+    <PackageReference Include="Avalonia.Diagnostics" Version="11.3.2">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
+
+    <!-- MVVM & DI -->
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.7" />
+  </ItemGroup>
+
+  <!-- Core プロジェクト参照 -->
+  <ItemGroup>
+    <ProjectReference Include="..\ServiceBusExplorer.Core\ServiceBusExplorer.Core.csproj" />
+  </ItemGroup>
+
+  <!-- macOS用のInfo.plistファイル -->
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64' Or '$(RuntimeIdentifier)' == 'osx-arm64'">
+    <BundleResource Include="Info.plist" />
+  </ItemGroup>
+
+  <!-- macOS用の実行可能ファイル設定 -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64' Or '$(RuntimeIdentifier)' == 'osx-arm64'">
+    <UseAppHost>true</UseAppHost>
+    <CFBundleExecutable>ServiceBusExplorer.UI</CFBundleExecutable>
+  </PropertyGroup>
+
+</Project>
