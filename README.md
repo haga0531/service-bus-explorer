@@ -123,9 +123,6 @@ The application follows a clean architecture pattern with clear separation of co
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Security
-
-For security concerns, please see our [Security Policy](SECURITY.md).
 
 ## Acknowledgments
 
