@@ -32,30 +32,30 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private MessageListViewModel? messageList;
-    
+
     [ObservableProperty]
     private bool isLoading = false;
-    
+
     [ObservableProperty]
     private string loadingMessage = string.Empty;
-    
+
     [ObservableProperty]
     private bool isConnecting = false;
-    
+
     [ObservableProperty]
     private string connectionProgress = string.Empty;
-    
+
     [ObservableProperty]
     private string? errorMessage;
-    
+
     [ObservableProperty]
     private LogViewModel logViewModel;
 
-        public IRelayCommand ConnectCommand { get; }
+    public IRelayCommand ConnectCommand { get; }
     public IRelayCommand ClearErrorCommand { get; }
     public IRelayCommand RefreshNodeCommand { get; }
     public IRelayCommand NodeExpandedCommand { get; }
-    
+
     public MainWindowViewModel(
         Func<ConnectDialogViewModel> dialogVmFactory,
         Func<string, MessageListViewModel> msgVmFactory,
@@ -63,12 +63,12 @@ public partial class MainWindowViewModel : ObservableObject
         LogViewModel logViewModel,
         ILogService logService)
     {
-        _dialogVmFactory  = dialogVmFactory;
-        _msgVmFactory     = msgVmFactory;
-        _providerFactory  = providerFactory;
-        LogViewModel      = logViewModel;
-        _logService       = logService;
-        ConnectCommand    = new AsyncRelayCommand(OpenConnectDialogAsync);
+        _dialogVmFactory = dialogVmFactory;
+        _msgVmFactory = msgVmFactory;
+        _providerFactory = providerFactory;
+        LogViewModel = logViewModel;
+        _logService = logService;
+        ConnectCommand = new AsyncRelayCommand(OpenConnectDialogAsync);
         ClearErrorCommand = new RelayCommand(() => ErrorMessage = null);
         RefreshNodeCommand = new AsyncRelayCommand<NamespaceNode>(RefreshNodeAsync);
         NodeExpandedCommand = new AsyncRelayCommand<NamespaceNode>(LoadNodeMessageCountsAsync);
@@ -77,7 +77,7 @@ public partial class MainWindowViewModel : ObservableObject
     partial void OnSelectedNodeChanged(NamespaceNode? value)
     {
         Console.WriteLine($"[OnSelectedNodeChanged] Node selected: {value?.Name}, Type: {value?.EntityType}, Path: {value?.FullPath}");
-        
+
         if (value is null || _currentConnectionString is null)
         {
             Console.WriteLine("[OnSelectedNodeChanged] Early return - value or connection string is null");
@@ -103,10 +103,10 @@ public partial class MainWindowViewModel : ObservableObject
         // Build full path
         var fullPath = GetFullPath(value);
         Console.WriteLine($"[OnSelectedNodeChanged] Full path: {fullPath}");
-        
+
         string? subscription = null;
         string? topicPath = null;
-        
+
         if (value.EntityType == NamespaceEntity.EntityType.Topic)
         {
             // For topics, we need to handle subscription selection
@@ -131,7 +131,7 @@ public partial class MainWindowViewModel : ObservableObject
         Console.WriteLine($"[OnSelectedNodeChanged] Loading messages for queue: {fullPath}");
         _ = LoadMessagesAsync(fullPath, subscription);
     }
-    
+
     private async Task LoadMessagesAsync(string fullPath, string? subscription)
     {
         try
@@ -140,12 +140,12 @@ public partial class MainWindowViewModel : ObservableObject
             IsLoading = true;
             LoadingMessage = $"Loading messages from: {fullPath}";
             ErrorMessage = null;
-            
+
             if (MessageList != null)
             {
                 await MessageList.LoadAsync(fullPath, subscription);
                 Console.WriteLine($"[LoadMessagesAsync] Loaded {MessageList.MessageCount} messages");
-                
+
                 // Update message counts in the selected node
                 if (SelectedNode != null)
                 {
@@ -171,7 +171,7 @@ public partial class MainWindowViewModel : ObservableObject
             Console.WriteLine("[LoadMessagesAsync] Finished loading");
         }
     }
-    
+
     private string GetFullPath(NamespaceNode node)
     {
         return node.FullPath;
@@ -180,9 +180,9 @@ public partial class MainWindowViewModel : ObservableObject
     private async Task OpenConnectDialogAsync()
     {
         _logService.LogInfo("MainWindowViewModel", "Opening connection dialog");
-        
+
         var dialogVm = _dialogVmFactory();
-        var dialog   = new ConnectDialog { DataContext = dialogVm };
+        var dialog = new ConnectDialog { DataContext = dialogVm };
 
         var owner = (Application.Current?.ApplicationLifetime as
                      IClassicDesktopStyleApplicationLifetime)?.MainWindow;
@@ -198,7 +198,7 @@ public partial class MainWindowViewModel : ObservableObject
             IsConnecting = true;
             ErrorMessage = null;
             ConnectionProgress = "Validating connection...";
-            
+
             // Save connection string
             _currentConnectionString = dialogVm.ConnectionString!;
 
@@ -213,7 +213,7 @@ public partial class MainWindowViewModel : ObservableObject
             await using var provider = _providerFactory(_currentConnectionString);
             var namespaceService = new NamespaceService(provider, _currentConnectionString);
             var nodes = await namespaceService.GetNodesAsync(includeMessageCounts: false);
-            
+
             Nodes.Clear();
             foreach (var n in nodes)
             {
@@ -236,7 +236,7 @@ public partial class MainWindowViewModel : ObservableObject
             ConnectionProgress = string.Empty;
         }
     }
-    
+
     private async Task LoadNodeMessageCountsAsync(NamespaceNode? node)
     {
         if (node == null || string.IsNullOrEmpty(_currentConnectionString))
@@ -245,22 +245,22 @@ public partial class MainWindowViewModel : ObservableObject
         }
 
         _logService.LogInfo("MainWindowViewModel", $"LoadNodeMessageCountsAsync called for node: {node.Name}, Children: {node.Children.Count}");
-        
+
         try
         {
             var adminClient = new ServiceBusAdministrationClient(_currentConnectionString);
             await using var provider = _providerFactory(_currentConnectionString);
-            
+
             // For topic nodes, load subscriptions first if not already loaded
             // Check if we have a placeholder child (Loading...)
-            if (node.IsTopic && (node.Children.Count == 0 || 
+            if (node.IsTopic && (node.Children.Count == 0 ||
                 (node.Children.Count == 1 && node.Children[0].FullPath.EndsWith("__placeholder__"))))
             {
                 _logService.LogInfo("MainWindowViewModel", $"Loading subscriptions for topic: {node.FullPath}");
                 try
                 {
                     var subscriptions = await provider.GetSubscriptionsAsync(node.FullPath);
-                    
+
                     // Load subscriptions in parallel and check auto-forwarding
                     var subscriptionTasks = subscriptions.Select(async subscriptionName =>
                     {
@@ -271,7 +271,7 @@ public partial class MainWindowViewModel : ObservableObject
                             Parent = node,
                             EntityType = NamespaceEntity.EntityType.Subscription
                         };
-                        
+
                         // Check if subscription has auto-forwarding enabled
                         try
                         {
@@ -286,19 +286,19 @@ public partial class MainWindowViewModel : ObservableObject
                         {
                             // Ignore errors when checking auto-forwarding
                         }
-                        
+
                         return subscriptionNode;
                     }).ToList();
-                    
+
                     // Clear placeholder before adding real subscriptions
                     node.Children.Clear();
-                    
+
                     var loadedSubscriptions = await Task.WhenAll(subscriptionTasks);
                     foreach (var subscriptionNode in loadedSubscriptions)
                     {
                         node.Children.Add(subscriptionNode);
                     }
-                    
+
                     _logService.LogInfo("MainWindowViewModel", $"Loaded {node.Children.Count} subscriptions for topic: {node.FullPath}");
                 }
                 catch (Exception ex)
@@ -306,11 +306,11 @@ public partial class MainWindowViewModel : ObservableObject
                     _logService.LogError("MainWindowViewModel", $"Error loading subscriptions for topic {node.FullPath}: {ex.Message}");
                 }
             }
-            
+
             // Load message counts for direct child nodes only (not recursive)
             // Process in parallel for better performance
             var tasks = new List<Task>();
-            
+
             foreach (var child in node.Children)
             {
                 if (child.IsQueue && !child.MessageCountsLoaded)
@@ -330,14 +330,14 @@ public partial class MainWindowViewModel : ObservableObject
                                     return;
                                 }
                             }
-                            
+
                             if (!child.HasAutoForwarding)
                             {
                                 var properties = await adminClient.GetQueueRuntimePropertiesAsync(child.FullPath);
                                 child.ActiveMessageCount = (int)properties.Value.ActiveMessageCount;
                                 child.DeadLetterMessageCount = (int)properties.Value.DeadLetterMessageCount;
                                 child.MessageCountsLoaded = true;
-                                
+
                                 _logService.LogInfo("MainWindowViewModel", $"Loaded counts for {child.Name}: Active={child.ActiveMessageCount}, DLQ={child.DeadLetterMessageCount}");
                             }
                         }
@@ -355,7 +355,7 @@ public partial class MainWindowViewModel : ObservableObject
                         {
                             // For subscriptions, get message counts from parent topic
                             var topicPath = child.Parent.FullPath;
-                            
+
                             // First check if the subscription has auto-forwarding enabled
                             var subscriptionProps = await provider.GetSubscriptionPropertiesAsync(topicPath, child.Name);
                             if (subscriptionProps != null && !string.IsNullOrEmpty(subscriptionProps.ForwardTo))
@@ -364,12 +364,12 @@ public partial class MainWindowViewModel : ObservableObject
                                 _logService.LogInfo("MainWindowViewModel", $"Subscription {child.Name} has auto-forwarding enabled, skipping message count");
                                 return;
                             }
-                            
+
                             var properties = await adminClient.GetSubscriptionRuntimePropertiesAsync(topicPath, child.Name);
                             child.ActiveMessageCount = (int)properties.Value.ActiveMessageCount;
                             child.DeadLetterMessageCount = (int)properties.Value.DeadLetterMessageCount;
                             child.MessageCountsLoaded = true;
-                            
+
                             _logService.LogInfo("MainWindowViewModel", $"Loaded counts for subscription {child.Name}: Active={child.ActiveMessageCount}, DLQ={child.DeadLetterMessageCount}");
                         }
                         catch (Exception ex)
@@ -379,7 +379,7 @@ public partial class MainWindowViewModel : ObservableObject
                     }));
                 }
             }
-            
+
             // Wait for all tasks to complete
             await Task.WhenAll(tasks);
         }
@@ -388,7 +388,7 @@ public partial class MainWindowViewModel : ObservableObject
             _logService.LogError("MainWindowViewModel", $"Error loading message counts: {ex.Message}");
         }
     }
-    
+
     private async Task RefreshNodeAsync(NamespaceNode? node)
     {
         if (node is null || node.EntityType is null || MessageList is null)
@@ -397,26 +397,26 @@ public partial class MainWindowViewModel : ObservableObject
         }
 
         _logService.LogInfo("MainWindowViewModel", $"User initiated refresh for node: {node.FullPath}");
-            
+
         try
         {
             IsLoading = true;
             LoadingMessage = $"Refreshing: {node.FullPath}";
             ErrorMessage = null;
-            
+
             // Get subscription name if this is a subscription node
             string? subscription = null;
             var queueOrTopic = node.FullPath;
-            
+
             if (node.IsSubscription && node.Parent?.IsTopic == true)
             {
                 subscription = node.Name;
                 queueOrTopic = node.Parent.FullPath; // Use parent topic path
             }
-            
+
             // Reload messages
             await MessageList.LoadAsync(queueOrTopic, subscription);
-            
+
             // Update message counts in the tree node
             node.ActiveMessageCount = MessageList.ActiveCount;
             node.DeadLetterMessageCount = MessageList.DeadLetterCount;

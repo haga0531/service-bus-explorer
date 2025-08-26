@@ -15,16 +15,16 @@ public partial class ConnectDialogViewModel : ObservableObject
     [ObservableProperty] private bool isConnecting = false;
     [ObservableProperty] private string? errorMessage;
 
-    public IRelayCommand CancelCommand  { get; }
+    public IRelayCommand CancelCommand { get; }
     public IRelayCommand ConnectCommand { get; }
 
     private readonly Func<string, INamespaceProvider> _providerFactory;
 
     public ConnectDialogViewModel(Func<string, INamespaceProvider> providerFactory)
     {
-        _providerFactory  = providerFactory;
-        CancelCommand     = new RelayCommand(() => CloseRequested?.Invoke(this, null));
-        ConnectCommand    = new AsyncRelayCommand(OnConnectAsync);
+        _providerFactory = providerFactory;
+        CancelCommand = new RelayCommand(() => CloseRequested?.Invoke(this, null));
+        ConnectCommand = new AsyncRelayCommand(OnConnectAsync);
     }
 
     /*--- Dialog -> Notify result to caller ---*/
@@ -42,10 +42,10 @@ public partial class ConnectDialogViewModel : ObservableObject
         {
             IsConnecting = true;
             ErrorMessage = null;
-            
+
             await using var provider = _providerFactory(ConnectionString);
-            var service   = new NamespaceService(provider, ConnectionString);
-            var entities  = await service.GetEntitiesAsync();
+            var service = new NamespaceService(provider, ConnectionString);
+            var entities = await service.GetEntitiesAsync();
             CloseRequested?.Invoke(this, entities);
         }
         catch (Exception ex)

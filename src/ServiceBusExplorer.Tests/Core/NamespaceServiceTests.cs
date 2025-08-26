@@ -27,7 +27,7 @@ public class NamespaceServiceTests
         // Arrange
         var queues = new[] { "queue1", "queue2" };
         var topics = new[] { "topic1", "topic2" };
-        
+
         _mockProvider.Setup(x => x.GetQueuesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(queues);
         _mockProvider.Setup(x => x.GetTopicsAsync(It.IsAny<CancellationToken>()))
@@ -49,7 +49,7 @@ public class NamespaceServiceTests
         // Arrange
         var queues = new[] { "queue1", "folder/queue2" };
         var topics = new[] { "topic1" };
-        
+
         _mockProvider.Setup(x => x.GetQueuesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(queues);
         _mockProvider.Setup(x => x.GetTopicsAsync(It.IsAny<CancellationToken>()))
@@ -60,11 +60,11 @@ public class NamespaceServiceTests
 
         // Assert
         result.Should().HaveCount(2);
-        
+
         var queuesNode = result.First(n => n.Name == "Queues");
         queuesNode.IsFolder.Should().BeTrue();
         queuesNode.Children.Should().HaveCount(2);
-        
+
         var topicsNode = result.First(n => n.Name == "Topics");
         topicsNode.IsFolder.Should().BeTrue();
         topicsNode.Children.Should().HaveCount(1);
@@ -75,7 +75,7 @@ public class NamespaceServiceTests
     {
         // Arrange
         var queues = new[] { "folder1/folder2/queue1", "folder1/queue2" };
-        
+
         _mockProvider.Setup(x => x.GetQueuesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(queues);
         _mockProvider.Setup(x => x.GetTopicsAsync(It.IsAny<CancellationToken>()))
@@ -87,12 +87,12 @@ public class NamespaceServiceTests
         // Assert
         var queuesNode = result.First(n => n.Name == "Queues");
         queuesNode.Children.Should().HaveCount(1);
-        
+
         var folder1 = queuesNode.Children.First();
         folder1.Name.Should().Be("folder1");
         folder1.IsFolder.Should().BeTrue();
         folder1.Children.Should().HaveCount(2);
-        
+
         var folder2 = folder1.Children.FirstOrDefault(n => n.Name == "folder2");
         folder2.Should().NotBeNull();
         folder2!.IsFolder.Should().BeTrue();
@@ -105,7 +105,7 @@ public class NamespaceServiceTests
     {
         // Arrange
         var topics = new[] { "topic1" };
-        
+
         _mockProvider.Setup(x => x.GetQueuesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<string>());
         _mockProvider.Setup(x => x.GetTopicsAsync(It.IsAny<CancellationToken>()))
@@ -117,7 +117,7 @@ public class NamespaceServiceTests
         // Assert
         var topicsNode = result.First(n => n.Name == "Topics");
         var topic1 = topicsNode.Children.First();
-        
+
         topic1.Children.Should().HaveCount(1);
         topic1.Children.First().Name.Should().Be("Loading...");
         topic1.Children.First().EntityType.Should().BeNull();
@@ -128,7 +128,7 @@ public class NamespaceServiceTests
     {
         // Arrange
         var queues = new[] { "queue1" };
-        
+
         _mockProvider.Setup(x => x.GetQueuesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(queues);
         _mockProvider.Setup(x => x.GetTopicsAsync(It.IsAny<CancellationToken>()))
@@ -140,7 +140,7 @@ public class NamespaceServiceTests
         // Assert
         var queuesNode = result.First(n => n.Name == "Queues");
         var queue1 = queuesNode.Children.First();
-        
+
         // Auto-forwarding and message counts are not loaded in GetNodesAsync
         queue1.HasAutoForwarding.Should().BeFalse();
         queue1.MessageCountsLoaded.Should().BeFalse();

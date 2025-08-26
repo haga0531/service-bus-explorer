@@ -1,4 +1,4 @@
-﻿using Azure.Messaging.ServiceBus.Administration;
+using Azure.Messaging.ServiceBus.Administration;
 using ServiceBusExplorer.Core.Models;
 using ServiceBusExplorer.Infrastructure;
 
@@ -21,21 +21,21 @@ public class NamespaceService(INamespaceProvider provider, string connectionStri
             .. topics.Select(t => new NamespaceEntity(t, NamespaceEntity.EntityType.Topic)),
         ];
     }
-    
+
     public async Task<IReadOnlyList<NamespaceNode>> GetNodesAsync(bool includeMessageCounts = false, CancellationToken ct = default)
     {
         _ = includeMessageCounts ? new ServiceBusAdministrationClient(_connectionString) : null;
 
         // Create root nodes for Queues and Topics
-        var queuesNode = new NamespaceNode 
-        { 
+        var queuesNode = new NamespaceNode
+        {
             Name = "Queues",
             FullPath = "Queues",
             EntityType = null // Folder node
         };
 
-        var topicsNode = new NamespaceNode 
-        { 
+        var topicsNode = new NamespaceNode
+        {
             Name = "Topics",
             FullPath = "Topics",
             EntityType = null // Folder node
@@ -44,9 +44,9 @@ public class NamespaceService(INamespaceProvider provider, string connectionStri
         // Load queues and topics in parallel for better performance
         var queuesTask = _provider.GetQueuesAsync(ct);
         var topicsTask = _provider.GetTopicsAsync(ct);
-        
+
         await Task.WhenAll(queuesTask, topicsTask);
-        
+
         // Process queues
         foreach (var queuePath in queuesTask.Result)
         {
@@ -59,16 +59,16 @@ public class NamespaceService(INamespaceProvider provider, string connectionStri
         {
             var parts = topicPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
             var topicNode = AddNodeToParent(topicsNode, parts, topicPath, NamespaceEntity.EntityType.Topic);
-            
+
             // Add a placeholder child to show expand arrow
             // This will be replaced with actual subscriptions when the topic is expanded
             topicNode?.Children.Add(new NamespaceNode
-                {
-                    Name = "Loading...",
-                    FullPath = $"{topicPath}/__placeholder__",
-                    Parent = topicNode,
-                    EntityType = null // Placeholder node
-                });
+            {
+                Name = "Loading...",
+                FullPath = $"{topicPath}/__placeholder__",
+                Parent = topicNode,
+                EntityType = null // Placeholder node
+            });
         }
 
         var result = new List<NamespaceNode>();
@@ -98,8 +98,8 @@ public class NamespaceService(INamespaceProvider provider, string connectionStri
             var existingChild = currentParent.Children.FirstOrDefault(c => c.Name == part);
             if (existingChild == null)
             {
-                var newNode = new NamespaceNode 
-                { 
+                var newNode = new NamespaceNode
+                {
                     Name = part,
                     FullPath = fullPath, // Always use the full path for entities
                     Parent = currentParent,
@@ -113,7 +113,7 @@ public class NamespaceService(INamespaceProvider provider, string connectionStri
                 currentParent = existingChild;
             }
         }
-        
+
         // Return the final node (the entity node)
         return currentParent;
     }

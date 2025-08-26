@@ -24,18 +24,18 @@ public class LogService : ILogService
     public void Log(LogLevel level, string source, string message, Exception? exception = null)
     {
         var entry = new LogEntry(level, source, message, exception);
-        
+
         lock (_lock)
         {
             _logs.Add(entry);
-            
+
             // Remove old entries if we exceed the maximum
             while (_logs.Count > MaxLogEntries)
             {
                 _logs.RemoveAt(0);
             }
         }
-        
+
         // Also write to console for debugging
         var consoleMessage = $"[{entry.Timestamp:HH:mm:ss}] [{entry.Level}] [{entry.Source}] {entry.Message}";
         if (exception != null)
@@ -43,7 +43,7 @@ public class LogService : ILogService
             consoleMessage += $"\n{exception}";
         }
         Console.WriteLine(consoleMessage);
-        
+
         // Raise event
         LogAdded?.Invoke(this, entry);
     }

@@ -15,8 +15,8 @@ public class NamespaceNode : INotifyPropertyChanged
     public bool IsTopic => EntityType == NamespaceEntity.EntityType.Topic;
     public bool IsFolder => EntityType == null;
     private bool _hasAutoForwarding;
-    public bool HasAutoForwarding 
-    { 
+    public bool HasAutoForwarding
+    {
         get => _hasAutoForwarding;
         set
         {
@@ -28,9 +28,9 @@ public class NamespaceNode : INotifyPropertyChanged
             }
         }
     }
-    
+
     // Icon property
-    public string Icon 
+    public string Icon
     {
         get
         {
@@ -62,14 +62,14 @@ public class NamespaceNode : INotifyPropertyChanged
             }
         }
     }
-    
+
     // Message counts
     private int _activeMessageCount;
     private int _deadLetterMessageCount;
     private bool _messageCountsLoaded;
-    
-    public int ActiveMessageCount 
-    { 
+
+    public int ActiveMessageCount
+    {
         get => _activeMessageCount;
         set
         {
@@ -78,9 +78,9 @@ public class NamespaceNode : INotifyPropertyChanged
             OnPropertyChanged(nameof(DisplayName));
         }
     }
-    
-    public int DeadLetterMessageCount 
-    { 
+
+    public int DeadLetterMessageCount
+    {
         get => _deadLetterMessageCount;
         set
         {
@@ -89,9 +89,9 @@ public class NamespaceNode : INotifyPropertyChanged
             OnPropertyChanged(nameof(DisplayName));
         }
     }
-    
-    public bool MessageCountsLoaded 
-    { 
+
+    public bool MessageCountsLoaded
+    {
         get => _messageCountsLoaded;
         set
         {
@@ -100,8 +100,8 @@ public class NamespaceNode : INotifyPropertyChanged
             OnPropertyChanged(nameof(DisplayName));
         }
     }
-    
-    public string DisplayName 
+
+    public string DisplayName
     {
         get
         {
@@ -119,9 +119,9 @@ public class NamespaceNode : INotifyPropertyChanged
             }
         }
     }
-    
+
     public event PropertyChangedEventHandler? PropertyChanged;
-    
+
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

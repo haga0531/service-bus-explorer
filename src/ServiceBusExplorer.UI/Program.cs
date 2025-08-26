@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Avalonia;
 using Avalonia.ReactiveUI;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,7 +36,7 @@ internal static class Program
         // Core
         // LogService (singleton for app-wide logging)
         services.AddSingleton<ILogService, LogService>();
-        
+
         // NamespaceService factory (needs INamespaceProvider and connection string)
         services.AddTransient<Func<INamespaceProvider, string, NamespaceService>>(sp =>
             (provider, connectionString) => new NamespaceService(provider, connectionString));
@@ -58,7 +58,7 @@ internal static class Program
             cs => new AzureMessageSendProvider(cs));
         services.AddTransient<Func<string, MessageListViewModel>>(sp =>
             cs => new MessageListViewModel(
-                sp.GetRequiredService<MessageService>(), 
+                sp.GetRequiredService<MessageService>(),
                 cs,
                 sp.GetRequiredService<Func<string, string, SendMessageDialogViewModel>>(),
                 sp.GetRequiredService<ILogService>(),

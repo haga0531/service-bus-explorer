@@ -8,4 +8,4 @@ public partial class SendMessageDialog : Window
     {
         InitializeComponent();
     }
-} 
+}
