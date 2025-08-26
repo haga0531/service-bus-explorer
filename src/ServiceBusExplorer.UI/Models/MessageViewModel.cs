@@ -22,9 +22,9 @@ public class MessageViewModel(
     public bool IsDeadLetter { get; } = isDeadLetter;
     public string Status => IsDeadLetter ? "Dead Letter" : "Active";
     public string StatusColor => IsDeadLetter ? "Red" : "Green";
-    
-    public bool IsSelected 
-    { 
+
+    public bool IsSelected
+    {
         get => _isSelected;
         set
         {
@@ -37,7 +37,7 @@ public class MessageViewModel(
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
-    
+
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

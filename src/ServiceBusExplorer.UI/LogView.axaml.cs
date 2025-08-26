@@ -7,17 +7,17 @@ namespace ServiceBusExplorer.UI;
 public partial class LogView : UserControl
 {
     private ScrollViewer? _scrollViewer;
-    
+
     public LogView()
     {
         InitializeComponent();
     }
-    
+
     protected override void OnLoaded(RoutedEventArgs e)
     {
         base.OnLoaded(e);
         _scrollViewer = this.FindControl<ScrollViewer>("LogScrollViewer");
-        
+
         if (DataContext is LogViewModel viewModel)
         {
             viewModel.Logs.CollectionChanged += (s, args) =>

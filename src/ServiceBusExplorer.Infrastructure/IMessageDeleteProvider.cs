@@ -7,12 +7,12 @@ public interface IMessageDeleteProvider
         string? subscription,
         string messageId,
         CancellationToken cancellationToken = default);
-        
+
     Task DeleteDeadLetterMessageAsync(
         string queueOrTopic,
         string? subscription,
         string messageId,
         CancellationToken cancellationToken = default);
-        
+
     ValueTask DisposeAsync();
 }

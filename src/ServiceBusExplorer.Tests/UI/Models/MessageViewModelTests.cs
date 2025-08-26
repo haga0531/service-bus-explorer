@@ -1,7 +1,7 @@
 #nullable disable
+using System.ComponentModel;
 using FluentAssertions;
 using ServiceBusExplorer.UI.Models;
-using System.ComponentModel;
 
 namespace ServiceBusExplorer.Tests.UI.Models;
 
@@ -63,7 +63,7 @@ public class MessageViewModelTests
         var sut = new MessageViewModel("id", "label", "type", DateTimeOffset.Now, "body", false);
         var eventRaised = false;
         string propertyName = null;
-        
+
         sut.PropertyChanged += (sender, e) =>
         {
             eventRaised = true;
@@ -85,7 +85,7 @@ public class MessageViewModelTests
         // Arrange
         var sut = new MessageViewModel("id", "label", "type", DateTimeOffset.Now, "body", false);
         sut.IsSelected = true; // Set initial value
-        
+
         var eventRaised = false;
         sut.PropertyChanged += (sender, e) => eventRaised = true;
 
@@ -103,7 +103,7 @@ public class MessageViewModelTests
         var sut = new MessageViewModel("id", "label", "type", DateTimeOffset.Now, "body", false);
         object eventSender = null;
         PropertyChangedEventArgs eventArgs = null;
-        
+
         sut.PropertyChanged += (sender, e) =>
         {
             eventSender = sender;

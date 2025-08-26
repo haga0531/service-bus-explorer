@@ -10,7 +10,7 @@ public interface IMessageSendProvider : IAsyncDisposable
         string? contentType = null,
         string? label = null,
         CancellationToken ct = default);
-        
+
     Task SendMessagesAsync(
         string queueOrTopic,
         string? subscription,
@@ -22,4 +22,4 @@ public record ServiceBusMessage(
     string Body,
     Dictionary<string, object>? Properties = null,
     string? ContentType = null,
-    string? Label = null); 
+    string? Label = null);

@@ -6,11 +6,11 @@ public interface IMessagePurgeProvider
         string queueOrTopic,
         string? subscription,
         CancellationToken cancellationToken = default);
-        
+
     Task<int> PurgeDeadLetterMessagesAsync(
         string queueOrTopic,
         string? subscription,
         CancellationToken cancellationToken = default);
-        
+
     ValueTask DisposeAsync();
 }

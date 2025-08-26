@@ -12,7 +12,7 @@ public partial class MessageListView : UserControl
     {
         InitializeComponent();
     }
-    
+
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);

@@ -17,7 +17,7 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
     {
         var receiver = subscription is null
             ? _client.CreateReceiver(queueOrTopic, new ServiceBusReceiverOptions
-                { ReceiveMode = ServiceBusReceiveMode.PeekLock })
+            { ReceiveMode = ServiceBusReceiveMode.PeekLock })
             : _client.CreateReceiver(queueOrTopic, subscription,
                 new ServiceBusReceiverOptions { ReceiveMode = ServiceBusReceiveMode.PeekLock });
 
@@ -31,7 +31,7 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
                 m.Body.ToString(),
                 false))];
     }
-    
+
     public async Task<IReadOnlyList<ServiceBusReceivedMessageDto>> PeekDeadLetterAsync(
         string queueOrTopic,
         string? subscription,
@@ -40,13 +40,13 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
     {
         var receiver = subscription is null
             ? _client.CreateReceiver(queueOrTopic, new ServiceBusReceiverOptions
-                { 
-                    ReceiveMode = ServiceBusReceiveMode.PeekLock,
-                    SubQueue = SubQueue.DeadLetter
-                })
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock,
+                SubQueue = SubQueue.DeadLetter
+            })
             : _client.CreateReceiver(queueOrTopic, subscription,
-                new ServiceBusReceiverOptions 
-                { 
+                new ServiceBusReceiverOptions
+                {
                     ReceiveMode = ServiceBusReceiveMode.PeekLock,
                     SubQueue = SubQueue.DeadLetter
                 });
@@ -70,39 +70,39 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
         CancellationToken ct = default)
     {
         Console.WriteLine($"[AzureMessagePeekProvider] PeekPagedAsync - Page: {pageNumber}, Size: {pageSize}");
-        
+
         // Get total count first
         var (activeCount, _) = await GetMessageCountsAsync(queueOrTopic, subscription, ct);
-        
+
         // Calculate skip amount
         var skipCount = (pageNumber - 1) * pageSize;
-        
+
         // For now, we'll retrieve messages sequentially
         // In a real implementation, we'd use sequence numbers for efficient skipping
         var receiver = string.IsNullOrEmpty(subscription)
-            ? _client.CreateReceiver(queueOrTopic, new ServiceBusReceiverOptions 
-              { 
-                  ReceiveMode = ServiceBusReceiveMode.PeekLock,
-                  SubQueue = SubQueue.None
-              })
-            : _client.CreateReceiver(queueOrTopic, subscription, new ServiceBusReceiverOptions 
-              { 
-                  ReceiveMode = ServiceBusReceiveMode.PeekLock,
-                  SubQueue = SubQueue.None
-              });
+            ? _client.CreateReceiver(queueOrTopic, new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock,
+                SubQueue = SubQueue.None
+            })
+            : _client.CreateReceiver(queueOrTopic, subscription, new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock,
+                SubQueue = SubQueue.None
+            });
 
         var allMessages = new List<ServiceBusReceivedMessage>();
         long? lastSequenceNumber = null;
-        
+
         // First, let's get the actual total count if we don't have it
         if (activeCount == 0)
         {
             var (count, _) = await GetMessageCountsAsync(queueOrTopic, subscription, ct);
             activeCount = count;
         }
-        
+
         var messagesToRetrieve = skipCount + pageSize;
-        
+
         await using (receiver)
         {
             while (allMessages.Count < messagesToRetrieve)
@@ -111,7 +111,7 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
                 var messages = lastSequenceNumber.HasValue
                     ? await receiver.PeekMessagesAsync(batchSize, fromSequenceNumber: lastSequenceNumber.Value + 1, cancellationToken: ct)
                     : await receiver.PeekMessagesAsync(batchSize, cancellationToken: ct);
-                
+
                 if (!messages.Any())
                 {
                     break;
@@ -121,7 +121,7 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
                 lastSequenceNumber = messages.Last().SequenceNumber;
             }
         }
-        
+
         // Skip to the requested page and take only the page size
         var pagedMessages = allMessages
             .Skip(skipCount)
@@ -134,7 +134,7 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
                 m.Body.ToString(),
                 false))
             .ToList();
-            
+
         return new PagedResult<ServiceBusReceivedMessageDto>
         {
             Items = pagedMessages,
@@ -143,7 +143,7 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
             PageSize = pageSize
         };
     }
-    
+
     public async Task<PagedResult<ServiceBusReceivedMessageDto>> PeekDeadLetterPagedAsync(
         string queueOrTopic,
         string? subscription,
@@ -152,37 +152,37 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
         CancellationToken ct = default)
     {
         Console.WriteLine($"[AzureMessagePeekProvider] PeekDeadLetterPagedAsync - Page: {pageNumber}, Size: {pageSize}");
-        
+
         // Get total count first
         var (_, deadLetterCount) = await GetMessageCountsAsync(queueOrTopic, subscription, ct);
-        
+
         // Calculate skip amount
         var skipCount = (pageNumber - 1) * pageSize;
-        
+
         var receiver = string.IsNullOrEmpty(subscription)
-            ? _client.CreateReceiver(queueOrTopic, new ServiceBusReceiverOptions 
-              { 
-                  ReceiveMode = ServiceBusReceiveMode.PeekLock,
-                  SubQueue = SubQueue.DeadLetter
-              })
-            : _client.CreateReceiver(queueOrTopic, subscription, new ServiceBusReceiverOptions 
-              { 
-                  ReceiveMode = ServiceBusReceiveMode.PeekLock,
-                  SubQueue = SubQueue.DeadLetter
-              });
+            ? _client.CreateReceiver(queueOrTopic, new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock,
+                SubQueue = SubQueue.DeadLetter
+            })
+            : _client.CreateReceiver(queueOrTopic, subscription, new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock,
+                SubQueue = SubQueue.DeadLetter
+            });
 
         var allMessages = new List<ServiceBusReceivedMessage>();
         long? lastSequenceNumber = null;
-        
+
         // First, let's get the actual total count if we don't have it
         if (deadLetterCount == 0)
         {
             var (_, count) = await GetMessageCountsAsync(queueOrTopic, subscription, ct);
             deadLetterCount = count;
         }
-        
+
         var messagesToRetrieve = skipCount + pageSize;
-        
+
         await using (receiver)
         {
             while (allMessages.Count < messagesToRetrieve)
@@ -191,7 +191,7 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
                 var messages = lastSequenceNumber.HasValue
                     ? await receiver.PeekMessagesAsync(batchSize, fromSequenceNumber: lastSequenceNumber.Value + 1, cancellationToken: ct)
                     : await receiver.PeekMessagesAsync(batchSize, cancellationToken: ct);
-                
+
                 if (!messages.Any())
                 {
                     break;
@@ -201,7 +201,7 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
                 lastSequenceNumber = messages.Last().SequenceNumber;
             }
         }
-        
+
         // Skip to the requested page and take only the page size
         var pagedMessages = allMessages
             .Skip(skipCount)
@@ -214,7 +214,7 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
                 m.Body.ToString(),
                 true))
             .ToList();
-            
+
         return new PagedResult<ServiceBusReceivedMessageDto>
         {
             Items = pagedMessages,
@@ -223,25 +223,25 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
             PageSize = pageSize
         };
     }
-    
+
     public async Task<(int activeCount, int deadLetterCount)> GetMessageCountsAsync(
         string queueOrTopic,
         string? subscription,
         CancellationToken ct = default)
     {
         Console.WriteLine($"[AzureMessagePeekProvider] Getting message counts using Management API for {queueOrTopic}/{subscription}");
-        
+
         try
         {
             // Use the more efficient Management API
             var (totalCount, activeCount, deadLetterCount, scheduledCount) = await GetRuntimePropertiesAsync(queueOrTopic, subscription, ct);
-            
+
             // Return as int for backward compatibility, but log if we're truncating
             if (activeCount > int.MaxValue || deadLetterCount > int.MaxValue)
             {
                 Console.WriteLine($"[AzureMessagePeekProvider] Warning: Message counts exceed int.MaxValue, truncating values");
             }
-            
+
             return ((int)Math.Min(activeCount, int.MaxValue), (int)Math.Min(deadLetterCount, int.MaxValue));
         }
         catch (Exception ex)
@@ -251,33 +251,33 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
             return await GetMessageCountsByPeekingAsync(queueOrTopic, subscription, ct);
         }
     }
-    
+
     private async Task<(int activeCount, int deadLetterCount)> GetMessageCountsByPeekingAsync(
         string queueOrTopic,
         string? subscription,
         CancellationToken ct = default)
     {
         Console.WriteLine($"[AzureMessagePeekProvider] Falling back to counting by peeking messages");
-        
+
         // You can configure this limit based on your needs
         const int maxCountLimit = 1000000; // 0 = no limit, or set to 1000000 for 1 million limit
-        
+
         var activeCount = 0;
         var deadLetterCount = 0;
-        
+
         // Count active messages
         var activeReceiver = string.IsNullOrEmpty(subscription)
-            ? _client.CreateReceiver(queueOrTopic, new ServiceBusReceiverOptions 
-              { 
-                  ReceiveMode = ServiceBusReceiveMode.PeekLock,
-                  SubQueue = SubQueue.None
-              })
-            : _client.CreateReceiver(queueOrTopic, subscription, new ServiceBusReceiverOptions 
-              { 
-                  ReceiveMode = ServiceBusReceiveMode.PeekLock,
-                  SubQueue = SubQueue.None
-              });
-              
+            ? _client.CreateReceiver(queueOrTopic, new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock,
+                SubQueue = SubQueue.None
+            })
+            : _client.CreateReceiver(queueOrTopic, subscription, new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock,
+                SubQueue = SubQueue.None
+            });
+
         await using (activeReceiver)
         {
             long? lastSequenceNumber = null;
@@ -285,11 +285,11 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
             while (true)
             {
                 iterations++;
-                
+
                 var messages = lastSequenceNumber.HasValue
                     ? await activeReceiver.PeekMessagesAsync(250, fromSequenceNumber: lastSequenceNumber.Value + 1, cancellationToken: ct)
                     : await activeReceiver.PeekMessagesAsync(250, cancellationToken: ct);
-                    
+
                 if (!messages.Any())
                 {
                     break;
@@ -298,13 +298,13 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
                 activeCount += messages.Count;
                 lastSequenceNumber = messages.Last().SequenceNumber;
 
-                
+
                 // Show progress every 10,000 messages
                 if (activeCount % 10000 == 0 && activeCount > 0)
                 {
                     Console.WriteLine($"[AzureMessagePeekProvider] Progress: Counted {activeCount:N0} active messages so far...");
                 }
-                
+
                 // Limit counting to prevent excessive API calls
                 if (maxCountLimit > 0 && activeCount >= maxCountLimit)
                 {
@@ -313,20 +313,20 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
                 }
             }
         }
-        
+
         // Count dead letter messages
         var deadLetterReceiver = string.IsNullOrEmpty(subscription)
-            ? _client.CreateReceiver(queueOrTopic, new ServiceBusReceiverOptions 
-              { 
-                  ReceiveMode = ServiceBusReceiveMode.PeekLock,
-                  SubQueue = SubQueue.DeadLetter
-              })
-            : _client.CreateReceiver(queueOrTopic, subscription, new ServiceBusReceiverOptions 
-              { 
-                  ReceiveMode = ServiceBusReceiveMode.PeekLock,
-                  SubQueue = SubQueue.DeadLetter
-              });
-              
+            ? _client.CreateReceiver(queueOrTopic, new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock,
+                SubQueue = SubQueue.DeadLetter
+            })
+            : _client.CreateReceiver(queueOrTopic, subscription, new ServiceBusReceiverOptions
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock,
+                SubQueue = SubQueue.DeadLetter
+            });
+
         await using (deadLetterReceiver)
         {
             long? lastSequenceNumber = null;
@@ -335,7 +335,7 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
                 var messages = lastSequenceNumber.HasValue
                     ? await deadLetterReceiver.PeekMessagesAsync(250, fromSequenceNumber: lastSequenceNumber.Value + 1, cancellationToken: ct)
                     : await deadLetterReceiver.PeekMessagesAsync(250, cancellationToken: ct);
-                    
+
                 if (!messages.Any())
                 {
                     break;
@@ -343,13 +343,13 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
 
                 deadLetterCount += messages.Count;
                 lastSequenceNumber = messages.Last().SequenceNumber;
-                
+
                 // Show progress every 10,000 messages
                 if (deadLetterCount % 10000 == 0 && deadLetterCount > 0)
                 {
                     Console.WriteLine($"[AzureMessagePeekProvider] Progress: Counted {deadLetterCount:N0} dead letter messages so far...");
                 }
-                
+
                 // Limit counting to prevent excessive API calls
                 if (maxCountLimit > 0 && deadLetterCount >= maxCountLimit)
                 {
@@ -358,7 +358,7 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
                 }
             }
         }
-        
+
         Console.WriteLine($"[AzureMessagePeekProvider] Final message counts - Active: {activeCount:N0}, Dead Letter: {deadLetterCount:N0}");
         return (activeCount, deadLetterCount);
     }
@@ -375,9 +375,9 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
                 // Queue
                 var queueProperties = await _adminClient.GetQueueRuntimePropertiesAsync(queueOrTopic, ct);
                 var props = queueProperties.Value;
-                
+
                 Console.WriteLine($"[AzureMessagePeekProvider] Queue runtime properties - Total: {props.TotalMessageCount:N0}, Active: {props.ActiveMessageCount:N0}, DLQ: {props.DeadLetterMessageCount:N0}, Scheduled: {props.ScheduledMessageCount:N0}");
-                
+
                 return (
                     totalCount: props.TotalMessageCount,
                     activeCount: props.ActiveMessageCount,
@@ -390,9 +390,9 @@ public sealed class AzureMessagePeekProvider(string connectionString) : IMessage
                 // Topic/Subscription
                 var subProperties = await _adminClient.GetSubscriptionRuntimePropertiesAsync(queueOrTopic, subscription, ct);
                 var props = subProperties.Value;
-                
+
                 Console.WriteLine($"[AzureMessagePeekProvider] Subscription runtime properties - Total: {props.TotalMessageCount:N0}, Active: {props.ActiveMessageCount:N0}, DLQ: {props.DeadLetterMessageCount:N0}");
-                
+
                 return (
                     totalCount: props.TotalMessageCount,
                     activeCount: props.ActiveMessageCount,

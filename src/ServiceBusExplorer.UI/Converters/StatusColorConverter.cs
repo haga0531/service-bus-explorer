@@ -8,7 +8,7 @@ namespace ServiceBusExplorer.UI.Converters;
 public class StatusColorConverter : IValueConverter
 {
     public static readonly StatusColorConverter Instance = new();
-    
+
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is bool isDeadLetter)
@@ -17,9 +17,9 @@ public class StatusColorConverter : IValueConverter
         }
         return Brushes.Black;
     }
-    
+
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
     }
-} 
+}

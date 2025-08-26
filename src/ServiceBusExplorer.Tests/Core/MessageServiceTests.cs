@@ -24,7 +24,7 @@ public class MessageServiceTests
         _mockDeleteProvider = new Mock<IMessageDeleteProvider>();
         _mockPurgeProvider = new Mock<IMessagePurgeProvider>();
         _mockResubmitProvider = new Mock<IMessageResubmitProvider>();
-        
+
         _sut = new MessageService(
             _ => _mockPeekProvider.Object,
             _ => _mockDeleteProvider.Object,
@@ -41,7 +41,7 @@ public class MessageServiceTests
             new("msg1", "label1", "application/json", DateTimeOffset.Now, "body1", false),
             new("msg2", "label2", "application/json", DateTimeOffset.Now, "body2", false)
         };
-        
+
         var pagedResult = new PagedResult<ServiceBusReceivedMessageDto>
         {
             Items = messages,
@@ -49,7 +49,7 @@ public class MessageServiceTests
             PageNumber = 1,
             PageSize = 50
         };
-        
+
         _mockPeekProvider.Setup(x => x.PeekPagedAsync("queue1", null, 1, 50, It.IsAny<CancellationToken>()))
             .ReturnsAsync(pagedResult);
 
@@ -71,7 +71,7 @@ public class MessageServiceTests
             new("msg1", "label1", "application/json", DateTimeOffset.Now, "body1", true),
             new("msg2", "label2", "application/json", DateTimeOffset.Now, "body2", true)
         };
-        
+
         var pagedResult = new PagedResult<ServiceBusReceivedMessageDto>
         {
             Items = messages,
@@ -79,7 +79,7 @@ public class MessageServiceTests
             PageNumber = 1,
             PageSize = 50
         };
-        
+
         _mockPeekProvider.Setup(x => x.PeekDeadLetterPagedAsync("queue1", null, 1, 50, It.IsAny<CancellationToken>()))
             .ReturnsAsync(pagedResult);
 
@@ -100,12 +100,12 @@ public class MessageServiceTests
         {
             new("msg1", "label1", "application/json", DateTimeOffset.Now, "body1", false)
         };
-        
+
         var deadLetterMessages = new List<ServiceBusReceivedMessageDto>
         {
             new("msg2", "label2", "application/json", DateTimeOffset.Now, "body2", true)
         };
-        
+
         var activePage = new PagedResult<ServiceBusReceivedMessageDto>
         {
             Items = activeMessages,
@@ -113,7 +113,7 @@ public class MessageServiceTests
             PageNumber = 1,
             PageSize = 50
         };
-        
+
         var deadLetterPage = new PagedResult<ServiceBusReceivedMessageDto>
         {
             Items = deadLetterMessages,
@@ -121,7 +121,7 @@ public class MessageServiceTests
             PageNumber = 1,
             PageSize = 50
         };
-        
+
         _mockPeekProvider.Setup(x => x.GetMessageCountsAsync("queue1", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync((activeCount: 10, deadLetterCount: 5));
         _mockPeekProvider.Setup(x => x.PeekPagedAsync("queue1", null, 1, It.IsAny<int>(), It.IsAny<CancellationToken>()))
@@ -188,16 +188,16 @@ public class MessageServiceTests
         await _sut.PurgeMessagesAsync(ConnectionString, "queue1", null, PurgeOption.All);
         _mockPurgeProvider.Verify(x => x.PurgeActiveMessagesAsync("queue1", null, It.IsAny<CancellationToken>()), Times.Once);
         _mockPurgeProvider.Verify(x => x.PurgeDeadLetterMessagesAsync("queue1", null, It.IsAny<CancellationToken>()), Times.Once);
-        
+
         _mockPurgeProvider.Reset();
-        
+
         // Act & Assert - Active only
         await _sut.PurgeMessagesAsync(ConnectionString, "queue1", null, PurgeOption.ActiveOnly);
         _mockPurgeProvider.Verify(x => x.PurgeActiveMessagesAsync("queue1", null, It.IsAny<CancellationToken>()), Times.Once);
         _mockPurgeProvider.Verify(x => x.PurgeDeadLetterMessagesAsync("queue1", null, It.IsAny<CancellationToken>()), Times.Never);
-        
+
         _mockPurgeProvider.Reset();
-        
+
         // Act & Assert - Dead letter only
         await _sut.PurgeMessagesAsync(ConnectionString, "queue1", null, PurgeOption.DeadLetterOnly);
         _mockPurgeProvider.Verify(x => x.PurgeActiveMessagesAsync("queue1", null, It.IsAny<CancellationToken>()), Times.Never);

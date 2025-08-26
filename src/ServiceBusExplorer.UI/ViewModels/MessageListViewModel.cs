@@ -26,7 +26,7 @@ public partial class MessageListViewModel : ObservableObject
     private CancellationTokenSource? _loadingCts;
 
     [ObservableProperty] private bool isLoading;
-    
+
     partial void OnIsLoadingChanged(bool value)
     {
         (CancelLoadingCommand as IRelayCommand)?.NotifyCanExecuteChanged();
@@ -38,7 +38,7 @@ public partial class MessageListViewModel : ObservableObject
     [ObservableProperty] private int deadLetterCount;
     [ObservableProperty] private MessageViewModel? selectedMessage;
     [ObservableProperty] private string? formattedMessageBody;
-    
+
     // Pagination properties
     [ObservableProperty] private int currentPage = 1;
     [ObservableProperty] private int pageSize = 50;
@@ -49,11 +49,11 @@ public partial class MessageListViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<int> pageSizeOptions = [50, 100, 200, 500];
     [ObservableProperty] private string messageFilter = "All";
     [ObservableProperty] private ObservableCollection<string> messageFilterOptions = ["All", "Active", "Dead Letter"];
-    
+
     // Loading overlay properties
     [ObservableProperty] private string loadingMessage = "Loading messages...";
     [ObservableProperty] private string? progressMessage;
-    
+
     // Bulk selection properties
     private bool _isAllSelected;
     public bool IsAllSelected
@@ -67,7 +67,7 @@ public partial class MessageListViewModel : ObservableObject
             }
         }
     }
-    
+
     public int SelectedCount => Messages.Count(m => m.IsSelected);
     public bool HasSelectedMessages => SelectedCount > 0;
 
@@ -81,8 +81,8 @@ public partial class MessageListViewModel : ObservableObject
     public IRelayCommand BulkResubmitCommand { get; }
 
     public MessageListViewModel(
-        MessageService messageService, 
-        string connectionString, 
+        MessageService messageService,
+        string connectionString,
         Func<string, string, SendMessageDialogViewModel> sendDialogVmFactory,
         ILogService logService,
         Func<string, INamespaceProvider> providerFactory)
@@ -101,7 +101,7 @@ public partial class MessageListViewModel : ObservableObject
         CancelLoadingCommand = new RelayCommand(CancelLoading, () => IsLoading);
         BulkResubmitCommand = new AsyncRelayCommand(BulkResubmitAsync, () => HasSelectedMessages);
     }
-    
+
     [RelayCommand(CanExecute = nameof(CanGoToPreviousPage))]
     private async Task GoToPreviousPageAsync()
     {
@@ -111,7 +111,7 @@ public partial class MessageListViewModel : ObservableObject
             await LoadPageAsync();
         }
     }
-    
+
     [RelayCommand(CanExecute = nameof(CanGoToNextPage))]
     private async Task GoToNextPageAsync()
     {
@@ -121,59 +121,59 @@ public partial class MessageListViewModel : ObservableObject
             await LoadPageAsync();
         }
     }
-    
+
     [RelayCommand]
     private async Task GoToFirstPageAsync()
     {
         CurrentPage = 1;
         await LoadPageAsync();
     }
-    
+
     [RelayCommand]
     private async Task GoToLastPageAsync()
     {
         CurrentPage = TotalPages;
         await LoadPageAsync();
     }
-    
 
-    
+
+
     private string? _currentEntityPath;
-    
+
     private void CancelLoading()
     {
         _logService.LogInfo("MessageListViewModel", "Cancelling loading operation");
         _loadingCts?.Cancel();
     }
-    
+
     partial void OnPageSizeChanged(int value)
     {
         Console.WriteLine($"[MessageListViewModel.OnPageSizeChanged] Page size changed to: {value}");
-        
+
         // Reset to first page when page size changes
         CurrentPage = 1;
-        
+
         // Reload with new page size
         if (!string.IsNullOrEmpty(_currentEntityPath))
         {
             _ = LoadPageAsync();
         }
     }
-    
+
     partial void OnMessageFilterChanged(string value)
     {
-                 Console.WriteLine($"[MessageListViewModel.OnMessageFilterChanged] Message filter changed to: {value}");
-        
+        Console.WriteLine($"[MessageListViewModel.OnMessageFilterChanged] Message filter changed to: {value}");
+
         // Reset to first page when filter changes
         CurrentPage = 1;
-        
+
         // Reload with new filter
         if (!string.IsNullOrEmpty(_currentEntityPath))
         {
             _ = LoadPageAsync();
         }
     }
-    
+
 
 
     public async Task LoadAsync(string entityPath, string? subscription)
@@ -181,7 +181,7 @@ public partial class MessageListViewModel : ObservableObject
         // Cancel any previous loading operation
         _loadingCts?.Cancel();
         _loadingCts = new CancellationTokenSource();
-        
+
         try
         {
             _logService.LogInfo("MessageListViewModel", $"Loading from: {entityPath}, subscription: {subscription}");
@@ -194,13 +194,13 @@ public partial class MessageListViewModel : ObservableObject
             FormattedMessageBody = null;
             _currentEntityPath = entityPath;
             _currentSubscription = subscription;
-            
+
             // Reset pagination
             CurrentPage = 1;
 
             // Check if queue or subscription has auto-forwarding enabled
             await using var provider = _providerFactory(_connectionString);
-            
+
             if (string.IsNullOrEmpty(subscription)) // It's a queue
             {
                 var queueProps = await provider.GetQueuePropertiesAsync(entityPath, _loadingCts.Token);
@@ -240,10 +240,10 @@ public partial class MessageListViewModel : ObservableObject
             MessageCount = ActiveCount + DeadLetterCount;
 
             _logService.LogInfo("MessageListViewModel", $"Total messages - Active: {ActiveCount:N0}, Dead Letter: {DeadLetterCount:N0}");
-            
+
             // Update loading message with count
             LoadingMessage = $"Loading {MessageCount:N0} messages from {entityPath}...";
-            
+
             // Load first page
             await LoadPageAsync();
         }
@@ -264,9 +264,9 @@ public partial class MessageListViewModel : ObservableObject
             _loadingCts = null;
         }
     }
-    
+
     private string? _currentSubscription;
-    
+
     private async Task LoadPageAsync()
     {
         if (string.IsNullOrEmpty(_currentEntityPath))
@@ -276,19 +276,19 @@ public partial class MessageListViewModel : ObservableObject
 
         // Create a new CTS if we don't have one
         _loadingCts ??= new CancellationTokenSource();
-            
+
         try
         {
             Console.WriteLine($"[MessageListViewModel.LoadPageAsync] Loading page {CurrentPage} (size: {PageSize})");
             IsLoading = true;
             ErrorMessage = null;
             ClearMessages();
-            
+
             // Determine includeDeadLetter based on filter
             var includeDeadLetter = MessageFilter == "All";
             var activeOnly = MessageFilter == "Active";
             var deadLetterOnly = MessageFilter == "Dead Letter";
-            
+
             // Get paged messages with filter
             var pagedResult = await _messageService.GetPagedMessagesAsync(
                 _connectionString,
@@ -299,12 +299,12 @@ public partial class MessageListViewModel : ObservableObject
                 activeOnly,
                 deadLetterOnly,
                 _loadingCts.Token);
-                
+
             // Update pagination properties
             TotalPages = pagedResult.TotalPages;
             CanGoToPreviousPage = pagedResult.HasPreviousPage;
             CanGoToNextPage = pagedResult.HasNextPage;
-            
+
             // Update page info based on filter
             var displayTotalCount = pagedResult.TotalCount;
             if (displayTotalCount > 0)
@@ -317,9 +317,9 @@ public partial class MessageListViewModel : ObservableObject
             {
                 PageInfo = "No messages";
             }
-            
+
             Console.WriteLine($"[MessageListViewModel.LoadPageAsync] Retrieved {pagedResult.Items.Count} messages for page {CurrentPage}");
-            
+
             // Add messages to collection
             foreach (var message in pagedResult.Items)
             {
@@ -334,7 +334,7 @@ public partial class MessageListViewModel : ObservableObject
                 {
                     bodyText = bodyText.Replace("  ", " ");
                 }
-                
+
                 var messageViewModel = new MessageViewModel(
                     message.MessageId ?? "NO-ID",
                     message.Label ?? "",
@@ -342,13 +342,13 @@ public partial class MessageListViewModel : ObservableObject
                     message.EnqueuedTime,
                     bodyText.Trim(),
                     message.IsDeadLetter);
-                
+
                 // Subscribe to property changes to update selection count
                 messageViewModel.PropertyChanged += OnMessagePropertyChanged;
-                
+
                 Messages.Add(messageViewModel);
             }
-            
+
             // Notify command state changes
             GoToPreviousPageCommand.NotifyCanExecuteChanged();
             GoToNextPageCommand.NotifyCanExecuteChanged();
@@ -368,7 +368,7 @@ public partial class MessageListViewModel : ObservableObject
             IsLoading = false;
         }
     }
-    
+
     private async Task OpenSendMessageDialogAsync()
     {
         if (string.IsNullOrEmpty(_currentEntityPath))
@@ -377,10 +377,10 @@ public partial class MessageListViewModel : ObservableObject
         }
 
         _logService.LogInfo("MessageListViewModel", $"Opening send message dialog for: {_currentEntityPath}");
-            
+
         var dialogVm = _sendDialogVmFactory(_connectionString, _currentEntityPath);
         var dialog = new SendMessageDialog { DataContext = dialogVm };
-        
+
         // Subscribe to close event
         void OnCloseRequested(object? sender, bool messageSent)
         {
@@ -388,18 +388,18 @@ public partial class MessageListViewModel : ObservableObject
             dialog.Close(messageSent);
         }
         dialogVm.CloseRequested += OnCloseRequested;
-        
+
         var owner = (Application.Current?.ApplicationLifetime as
                      IClassicDesktopStyleApplicationLifetime)?.MainWindow;
         var result = await dialog.ShowDialog<bool>(owner!);
-        
+
         // If message was sent successfully, refresh the message list
         if (result && !string.IsNullOrEmpty(_currentEntityPath))
         {
             await LoadAsync(_currentEntityPath, null);
         }
     }
-    
+
     private async Task RefreshAsync()
     {
         if (string.IsNullOrEmpty(_currentEntityPath))
@@ -408,7 +408,7 @@ public partial class MessageListViewModel : ObservableObject
         }
 
         _logService.LogInfo("MessageListViewModel", $"Refreshing messages for {_currentEntityPath}");
-        
+
         try
         {
             // First, update message counts
@@ -420,12 +420,12 @@ public partial class MessageListViewModel : ObservableObject
             ActiveCount = activeCount;
             DeadLetterCount = deadLetterCount;
             MessageCount = ActiveCount + DeadLetterCount;
-            
+
             _logService.LogInfo("MessageListViewModel", $"Updated counts - Active: {activeCount:N0}, Dead Letter: {deadLetterCount:N0}");
-            
+
             // Then reload current page
             await LoadPageAsync();
-            
+
             _logService.LogInfo("MessageListViewModel", "Refresh completed successfully");
         }
         catch (Exception ex)
@@ -434,7 +434,7 @@ public partial class MessageListViewModel : ObservableObject
             throw;
         }
     }
-    
+
     private async Task CopyMessageBodyAsync()
     {
         if (SelectedMessage == null || string.IsNullOrEmpty(SelectedMessage.Body))
@@ -443,17 +443,17 @@ public partial class MessageListViewModel : ObservableObject
         }
 
         _logService.LogInfo("MessageListViewModel", $"Copying message body to clipboard (Message ID: {SelectedMessage.MessageId})");
-            
+
         var clipboard = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
             ? desktop.MainWindow?.Clipboard
             : null;
-            
+
         if (clipboard != null)
         {
             await clipboard.SetTextAsync(FormattedMessageBody ?? SelectedMessage.Body);
         }
     }
-    
+
     private (string queueOrTopic, string? subscription) ParseEntityPath(string entityPath)
     {
         var parts = entityPath.Split('/');
@@ -471,7 +471,7 @@ public partial class MessageListViewModel : ObservableObject
             return (entityPath, null);
         }
     }
-    
+
     private void FormatMessageBody()
     {
         if (SelectedMessage == null || string.IsNullOrEmpty(SelectedMessage.Body))
@@ -480,7 +480,7 @@ public partial class MessageListViewModel : ObservableObject
         }
 
         _logService.LogInfo("MessageListViewModel", $"Formatting message body (Message ID: {SelectedMessage.MessageId})");
-            
+
         try
         {
             // Try to format as JSON
@@ -489,7 +489,7 @@ public partial class MessageListViewModel : ObservableObject
             {
                 WriteIndented = true
             });
-            
+
             // Create a new MessageViewModel with formatted body
             var formattedMessage = new MessageViewModel(
                 SelectedMessage.MessageId,
@@ -498,7 +498,7 @@ public partial class MessageListViewModel : ObservableObject
                 SelectedMessage.EnqueuedTime,
                 formattedJson,
                 SelectedMessage.IsDeadLetter);
-                
+
             // Update the selected message
             var index = Messages.IndexOf(SelectedMessage);
             if (index >= 0)
@@ -514,7 +514,7 @@ public partial class MessageListViewModel : ObservableObject
             {
                 var xmlDoc = XDocument.Parse(SelectedMessage.Body);
                 var formattedXml = xmlDoc.ToString();
-                
+
                 // Create a new MessageViewModel with formatted body
                 var formattedMessage = new MessageViewModel(
                     SelectedMessage.MessageId,
@@ -523,7 +523,7 @@ public partial class MessageListViewModel : ObservableObject
                     SelectedMessage.EnqueuedTime,
                     formattedXml,
                     SelectedMessage.IsDeadLetter);
-                    
+
                 // Update the selected message
                 var index = Messages.IndexOf(SelectedMessage);
                 if (index >= 0)
@@ -538,7 +538,7 @@ public partial class MessageListViewModel : ObservableObject
             }
         }
     }
-    
+
     partial void OnSelectedMessageChanged(MessageViewModel? value)
     {
         if (value == null)
@@ -546,7 +546,7 @@ public partial class MessageListViewModel : ObservableObject
             FormattedMessageBody = null;
             return;
         }
-        
+
         // Auto-format message body when message is selected
         try
         {
@@ -572,7 +572,7 @@ public partial class MessageListViewModel : ObservableObject
             }
         }
     }
-    
+
     [RelayCommand]
     private async Task EditAndResendAsync()
     {
@@ -584,7 +584,7 @@ public partial class MessageListViewModel : ObservableObject
         try
         {
             Console.WriteLine($"[EditAndResendAsync] Opening edit dialog for message: {SelectedMessage.MessageId}");
-            
+
             // Create and show edit dialog
             var dialog = new EditMessageDialog();
             var viewModel = new EditMessageDialogViewModel(dialog);
@@ -594,15 +594,15 @@ public partial class MessageListViewModel : ObservableObject
                 SelectedMessage.ContentType ?? "application/json",
                 SelectedMessage.IsDeadLetter);
             dialog.DataContext = viewModel;
-            
+
             var owner = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
                 ? desktop.MainWindow
                 : null;
-                
+
             await dialog.ShowDialog(owner!);
-            
+
             Console.WriteLine($"[EditAndResendAsync] Dialog closed - confirmed: {viewModel.DialogResult}");
-            
+
             if (!viewModel.DialogResult)
             {
                 return;
@@ -612,7 +612,7 @@ public partial class MessageListViewModel : ObservableObject
             var originalMessageId = SelectedMessage.MessageId;
             var isDeadLetter = SelectedMessage.IsDeadLetter;
             var deleteOriginal = viewModel.DeleteOriginal;
-            
+
             // Send the edited message as new
             Console.WriteLine($"[EditAndResendAsync] Sending edited message");
             await _messageService.ResubmitMessageAsync(
@@ -622,7 +622,7 @@ public partial class MessageListViewModel : ObservableObject
                 viewModel.ContentType,
                 null); // Label can be null for now
             Console.WriteLine($"[EditAndResendAsync] Message sent successfully");
-                
+
             // Delete original message if requested
             if (deleteOriginal)
             {
@@ -630,7 +630,7 @@ public partial class MessageListViewModel : ObservableObject
                 {
                     Console.WriteLine($"[EditAndResendAsync] Deleting original message {originalMessageId}");
                     var (queueOrTopic, subscription) = ParseEntityPath(_currentEntityPath!);
-                    
+
                     if (isDeadLetter)
                     {
                         await _messageService.DeleteDeadLetterMessageAsync(
@@ -647,7 +647,7 @@ public partial class MessageListViewModel : ObservableObject
                             subscription,
                             originalMessageId);
                     }
-                    
+
                     Console.WriteLine($"[EditAndResendAsync] Original message deleted");
                 }
                 catch (Exception deleteEx)
@@ -656,10 +656,10 @@ public partial class MessageListViewModel : ObservableObject
                     // Continue - send was successful even if delete failed
                 }
             }
-            
+
             // Refresh the message list
             await RefreshAsync();
-            
+
             // Show success notification
             ErrorMessage = null;
             Console.WriteLine($"Message edited and sent successfully");
@@ -670,7 +670,7 @@ public partial class MessageListViewModel : ObservableObject
             Console.WriteLine($"[EditAndResendAsync] Error: {ex.Message}");
         }
     }
-    
+
     [RelayCommand]
     private async Task ResubmitMessageAsync()
     {
@@ -680,7 +680,7 @@ public partial class MessageListViewModel : ObservableObject
         }
 
         _logService.LogInfo("MessageListViewModel", $"User initiated resubmit for message: {SelectedMessage.MessageId} (IsDeadLetter: {SelectedMessage.IsDeadLetter})");
-            
+
         try
         {
             // Create and show confirmation dialog
@@ -690,13 +690,13 @@ public partial class MessageListViewModel : ObservableObject
                 SelectedMessage.IsDeadLetter,
                 _currentEntityPath,
                 SelectedMessage.ContentType);
-                
+
             var dialog = new ResubmitConfirmDialog { DataContext = dialogVm };
-            
+
             // Subscribe to close event
             var confirmed = false;
             var deleteFromDeadLetter = false;
-            
+
             void OnCloseRequested(object? sender, (bool confirmed, bool deleteFromDeadLetter) result)
             {
                 dialogVm.CloseRequested -= OnCloseRequested;
@@ -705,11 +705,11 @@ public partial class MessageListViewModel : ObservableObject
                 dialog.Close();
             }
             dialogVm.CloseRequested += OnCloseRequested;
-            
+
             var owner = (Application.Current?.ApplicationLifetime as
                          IClassicDesktopStyleApplicationLifetime)?.MainWindow;
             Console.WriteLine($"[ResubmitMessageAsync] Dialog owner: {owner}");
-            
+
             try
             {
                 await dialog.ShowDialog(owner!);
@@ -719,19 +719,19 @@ public partial class MessageListViewModel : ObservableObject
                 Console.WriteLine($"[ResubmitMessageAsync] Dialog error: {dialogEx.Message}");
                 throw;
             }
-            
+
             if (!confirmed)
             {
                 _logService.LogInfo("MessageListViewModel", "Message resubmit cancelled by user");
                 return;
             }
-            
+
             _logService.LogInfo("MessageListViewModel", $"Resubmit confirmed - Delete from dead letter: {deleteFromDeadLetter}");
-                
+
             // Store message ID and properties before refresh
             var messageId = SelectedMessage.MessageId;
             var isDeadLetter = SelectedMessage.IsDeadLetter;
-            
+
             // Resubmit the message
             _logService.LogInfo("MessageListViewModel", $"Resubmitting message {messageId}");
             await _messageService.ResubmitMessageAsync(
@@ -741,7 +741,7 @@ public partial class MessageListViewModel : ObservableObject
                 SelectedMessage.ContentType,
                 SelectedMessage.Label);
             _logService.LogInfo("MessageListViewModel", $"Message {messageId} resubmitted successfully");
-                
+
             // Delete from dead letter if requested
             if (deleteFromDeadLetter && isDeadLetter)
             {
@@ -762,12 +762,12 @@ public partial class MessageListViewModel : ObservableObject
                     // Continue - resubmit was successful even if delete failed
                 }
             }
-            
+
             // Refresh the message list
             Console.WriteLine($"[ResubmitMessageAsync] Refreshing message list");
             await RefreshAsync();
             Console.WriteLine($"[ResubmitMessageAsync] Message list refreshed");
-            
+
             // Show success notification (you can implement a proper notification system)
             ErrorMessage = null;
             Console.WriteLine($"Message {messageId} resubmitted successfully");
@@ -780,7 +780,7 @@ public partial class MessageListViewModel : ObservableObject
             Console.WriteLine($"[ResubmitMessageAsync] Inner exception: {ex.InnerException?.Message}");
         }
     }
-    
+
     private async Task PurgeMessagesAsync()
     {
         if (string.IsNullOrEmpty(_currentEntityPath))
@@ -789,35 +789,35 @@ public partial class MessageListViewModel : ObservableObject
         }
 
         _logService.LogInfo("MessageListViewModel", $"User initiated purge for: {_currentEntityPath}");
-            
+
         try
         {
-            
+
             // Create and show purge confirmation dialog
             var dialog = new PurgeConfirmDialog();
             var viewModel = new PurgeConfirmDialogViewModel();
             viewModel.Initialize(_currentEntityPath, ActiveCount, DeadLetterCount);
             dialog.DataContext = viewModel;
-            
+
             var owner = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
                 ? desktop.MainWindow
                 : null;
-                
+
             var dialogResult = (confirmed: false, selectedOption: PurgeOption.ActiveOnly);
-            
+
             void OnCloseRequested(object? sender, (bool confirmed, PurgeOption option) result)
             {
                 viewModel.CloseRequested -= OnCloseRequested;
                 dialogResult = result;
                 dialog.Close();
             }
-            
+
             viewModel.CloseRequested += OnCloseRequested;
-            
+
             Console.WriteLine($"[PurgeMessagesAsync] Dialog owner: {owner}");
             await dialog.ShowDialog(owner!);
             Console.WriteLine($"[PurgeMessagesAsync] Dialog closed - confirmed: {dialogResult.confirmed}, option: {dialogResult.selectedOption}");
-            
+
             if (!dialogResult.confirmed)
             {
                 return;
@@ -826,23 +826,23 @@ public partial class MessageListViewModel : ObservableObject
             // Show loading
             IsLoading = true;
             ErrorMessage = null;
-            
+
             try
             {
                 Console.WriteLine($"[PurgeMessagesAsync] Starting purge operation - option: {dialogResult.selectedOption}");
                 var (queueOrTopic, subscription) = ParseEntityPath(_currentEntityPath);
-                
+
                 var purgedCount = await _messageService.PurgeMessagesAsync(
                     _connectionString,
                     queueOrTopic,
                     subscription,
                     dialogResult.selectedOption);
-                    
+
                 Console.WriteLine($"[PurgeMessagesAsync] Purged {purgedCount} messages successfully");
-                
+
                 // Refresh the message list
                 await RefreshAsync();
-                
+
                 // Show success notification
                 ErrorMessage = null;
                 Console.WriteLine($"Successfully purged {purgedCount} messages");
@@ -860,7 +860,7 @@ public partial class MessageListViewModel : ObservableObject
             IsLoading = false;
         }
     }
-    
+
     private async Task DeleteMessageAsync()
     {
         if (SelectedMessage == null)
@@ -871,27 +871,27 @@ public partial class MessageListViewModel : ObservableObject
         try
         {
             _logService.LogInfo("MessageListViewModel", $"User initiated delete for message: {SelectedMessage.MessageId}");
-            
+
             var dialog = new DeleteConfirmDialog();
             var viewModel = new DeleteConfirmDialogViewModel();
             viewModel.Initialize(SelectedMessage.MessageId, _currentEntityPath ?? "", SelectedMessage.IsDeadLetter);
             dialog.DataContext = viewModel;
-            
+
             var owner = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
                 ? desktop.MainWindow
                 : null;
-                
+
             var dialogResult = false;
-            
+
             void OnCloseRequested(object? sender, bool result)
             {
                 viewModel.CloseRequested -= OnCloseRequested;
                 dialogResult = result;
                 dialog.Close();
             }
-            
+
             viewModel.CloseRequested += OnCloseRequested;
-            
+
             Console.WriteLine($"[DeleteMessageAsync] Dialog owner: {owner}");
             await dialog.ShowDialog(owner!);
             if (!dialogResult)
@@ -899,20 +899,20 @@ public partial class MessageListViewModel : ObservableObject
                 _logService.LogInfo("MessageListViewModel", "Message deletion cancelled by user");
                 return;
             }
-                
+
             IsLoading = true;
             ErrorMessage = null;
-            
+
             try
             {
                 // Store message info before deletion
                 var messageId = SelectedMessage.MessageId;
                 var isDeadLetter = SelectedMessage.IsDeadLetter;
-                
+
                 _logService.LogInfo("MessageListViewModel", $"Deleting message {messageId} from {(isDeadLetter ? "dead letter" : "active")} queue");
-                
+
                 var (queueOrTopic, subscription) = ParseEntityPath(_currentEntityPath!);
-                
+
                 if (isDeadLetter)
                 {
                     await _messageService.DeleteDeadLetterMessageAsync(
@@ -929,12 +929,12 @@ public partial class MessageListViewModel : ObservableObject
                         subscription,
                         messageId);
                 }
-                
+
                 _logService.LogInfo("MessageListViewModel", $"Message {messageId} deleted successfully");
-                
+
                 // Refresh the message list
                 await RefreshAsync();
-                
+
                 ErrorMessage = null;
             }
             catch (Exception ex)
@@ -955,7 +955,7 @@ public partial class MessageListViewModel : ObservableObject
             IsLoading = false;
         }
     }
-    
+
     private void UpdateAllMessagesSelection(bool isSelected)
     {
         foreach (var message in Messages)
@@ -966,7 +966,7 @@ public partial class MessageListViewModel : ObservableObject
         OnPropertyChanged(nameof(HasSelectedMessages));
         (BulkResubmitCommand as IRelayCommand)?.NotifyCanExecuteChanged();
     }
-    
+
     private void ClearMessages()
     {
         // Unsubscribe from property changed events to prevent memory leaks
@@ -976,7 +976,7 @@ public partial class MessageListViewModel : ObservableObject
         }
         Messages.Clear();
     }
-    
+
     private void OnMessagePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(MessageViewModel.IsSelected))
@@ -986,7 +986,7 @@ public partial class MessageListViewModel : ObservableObject
             (BulkResubmitCommand as IRelayCommand)?.NotifyCanExecuteChanged();
         }
     }
-    
+
     private async Task BulkResubmitAsync()
     {
         var selectedMessages = Messages.Where(m => m.IsSelected && m.IsDeadLetter).ToList();
@@ -995,7 +995,7 @@ public partial class MessageListViewModel : ObservableObject
             ErrorMessage = "No dead letter messages selected for resubmit";
             return;
         }
-        
+
         try
         {
             // Show confirmation dialog
@@ -1014,7 +1014,7 @@ public partial class MessageListViewModel : ObservableObject
             };
             var dialog = new ResubmitConfirmDialog { DataContext = dialogVm };
             var result = await dialog.ShowDialog<bool>(mainWindow);
-            
+
             if (!result)
             {
                 return;
@@ -1023,15 +1023,15 @@ public partial class MessageListViewModel : ObservableObject
             IsLoading = true;
             LoadingMessage = $"Resubmitting {selectedMessages.Count} messages...";
             ProgressMessage = null;
-            
+
             var successCount = 0;
             var failCount = 0;
-            
+
             for (var i = 0; i < selectedMessages.Count; i++)
             {
                 var message = selectedMessages[i];
                 ProgressMessage = $"Processing message {i + 1} of {selectedMessages.Count}...";
-                
+
                 try
                 {
                     await _messageService.ResubmitDeadLetterMessageAsync(
@@ -1039,7 +1039,7 @@ public partial class MessageListViewModel : ObservableObject
                         _currentEntityPath!,
                         message.MessageId,
                         _currentSubscription);
-                    
+
                     successCount++;
                     _logService.LogInfo("MessageListViewModel", $"Message {message.MessageId} resubmitted successfully");
                 }
@@ -1049,7 +1049,7 @@ public partial class MessageListViewModel : ObservableObject
                     _logService.LogError("MessageListViewModel", $"Failed to resubmit message {message.MessageId}: {ex.Message}");
                 }
             }
-            
+
             // Show result
             if (failCount == 0)
             {
@@ -1060,10 +1060,10 @@ public partial class MessageListViewModel : ObservableObject
             {
                 ErrorMessage = $"Resubmitted {successCount} messages, {failCount} failed";
             }
-            
+
             // Clear selection
             IsAllSelected = false;
-            
+
             // Refresh the list
             await RefreshAsync();
         }
@@ -1078,7 +1078,7 @@ public partial class MessageListViewModel : ObservableObject
             ProgressMessage = null;
         }
     }
-    
+
     partial void OnMessagesChanged(ObservableCollection<MessageViewModel>? value)
     {
         // Update selection state when messages change

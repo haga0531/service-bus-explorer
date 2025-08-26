@@ -73,8 +73,8 @@ public class NamespaceNodeTests
     public void DisplayName_ShouldIncludeMessageCounts_WhenLoaded()
     {
         // Arrange
-        var node = new NamespaceNode 
-        { 
+        var node = new NamespaceNode
+        {
             Name = "TestQueue",
             EntityType = NamespaceEntity.EntityType.Queue,
             MessageCountsLoaded = true,
@@ -90,8 +90,8 @@ public class NamespaceNodeTests
     public void DisplayName_ShouldShowOnlyActiveCount_WhenNoDeadLetterMessages()
     {
         // Arrange
-        var node = new NamespaceNode 
-        { 
+        var node = new NamespaceNode
+        {
             Name = "TestQueue",
             EntityType = NamespaceEntity.EntityType.Queue,
             MessageCountsLoaded = true,
@@ -107,8 +107,8 @@ public class NamespaceNodeTests
     public void DisplayName_ShouldShowOnlyName_WhenMessageCountsNotLoaded()
     {
         // Arrange
-        var node = new NamespaceNode 
-        { 
+        var node = new NamespaceNode
+        {
             Name = "TestQueue",
             EntityType = NamespaceEntity.EntityType.Queue,
             MessageCountsLoaded = false
@@ -122,8 +122,8 @@ public class NamespaceNodeTests
     public void DisplayName_ShouldShowOnlyName_ForFolders()
     {
         // Arrange
-        var node = new NamespaceNode 
-        { 
+        var node = new NamespaceNode
+        {
             Name = "FolderName",
             EntityType = null,
             MessageCountsLoaded = true,
@@ -140,7 +140,7 @@ public class NamespaceNodeTests
         // Arrange
         var node = new NamespaceNode();
         var raisedProperties = new List<string>();
-        
+
         node.PropertyChanged += (sender, e) =>
         {
             raisedProperties.Add(e.PropertyName);
@@ -158,13 +158,13 @@ public class NamespaceNodeTests
     public void ActiveMessageCount_WhenChanged_ShouldRaisePropertyChangedForDisplayName()
     {
         // Arrange
-        var node = new NamespaceNode 
-        { 
+        var node = new NamespaceNode
+        {
             Name = "TestQueue",
             EntityType = NamespaceEntity.EntityType.Queue,
             MessageCountsLoaded = true
         };
-        
+
         var raisedProperties = new List<string>();
         node.PropertyChanged += (sender, e) => raisedProperties.Add(e.PropertyName!);
 
@@ -180,13 +180,13 @@ public class NamespaceNodeTests
     public void DeadLetterMessageCount_WhenChanged_ShouldRaisePropertyChangedForDisplayName()
     {
         // Arrange
-        var node = new NamespaceNode 
-        { 
+        var node = new NamespaceNode
+        {
             Name = "TestQueue",
             EntityType = NamespaceEntity.EntityType.Queue,
             MessageCountsLoaded = true
         };
-        
+
         var raisedProperties = new List<string>();
         node.PropertyChanged += (sender, e) => raisedProperties.Add(e.PropertyName!);
 
@@ -202,14 +202,14 @@ public class NamespaceNodeTests
     public void MessageCountsLoaded_WhenChanged_ShouldRaisePropertyChangedForDisplayName()
     {
         // Arrange
-        var node = new NamespaceNode 
-        { 
+        var node = new NamespaceNode
+        {
             Name = "TestQueue",
             EntityType = NamespaceEntity.EntityType.Queue,
             ActiveMessageCount = 10,
             DeadLetterMessageCount = 5
         };
-        
+
         var raisedProperties = new List<string>();
         node.PropertyChanged += (sender, e) => raisedProperties.Add(e.PropertyName!);
 
