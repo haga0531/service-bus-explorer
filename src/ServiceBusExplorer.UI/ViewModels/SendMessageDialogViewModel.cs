@@ -6,6 +6,7 @@ using System.Xml.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ServiceBusExplorer.Infrastructure;
+using ServiceBusExplorer.Infrastructure.Models;
 
 namespace ServiceBusExplorer.UI;
 
@@ -21,25 +22,25 @@ public partial class SendMessageDialogViewModel : ObservableObject
     [ObservableProperty] private bool isFormatButtonVisible;
     [ObservableProperty] private bool isValidJson;
     [ObservableProperty] private bool isValidXml;
-    
+
     public IRelayCommand FormatJsonCommand { get; }
-    
-    private readonly Func<string, IMessageSendProvider> _sendProviderFactory;
-    private readonly string _connectionString;
+
+    private readonly Func<ServiceBusAuthContext, IMessageSendProvider> _sendProviderFactory;
+    private readonly ServiceBusAuthContext _authContext;
     private readonly string _entityPath;
-    
+
     public IRelayCommand CancelCommand { get; }
     public IRelayCommand SendCommand { get; }
-    
+
     public event EventHandler<bool>? CloseRequested;
-    
+
     public SendMessageDialogViewModel(
-        Func<string, IMessageSendProvider> sendProviderFactory,
-        string connectionString,
+        Func<ServiceBusAuthContext, IMessageSendProvider> sendProviderFactory,
+        ServiceBusAuthContext authContext,
         string entityPath)
     {
         _sendProviderFactory = sendProviderFactory;
-        _connectionString = connectionString;
+        _authContext = authContext;
         _entityPath = entityPath;
         DestinationPath = entityPath;
         
@@ -147,8 +148,8 @@ public partial class SendMessageDialogViewModel : ObservableObject
         {
             IsSending = true;
             ErrorMessage = null;
-            
-            await using var provider = _sendProviderFactory(_connectionString);
+
+            await using var provider = _sendProviderFactory(_authContext);
             await provider.SendMessageAsync(
                 _entityPath,
                 null, // subscription

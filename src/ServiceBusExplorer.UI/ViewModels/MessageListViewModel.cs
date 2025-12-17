@@ -12,6 +12,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ServiceBusExplorer.Core;
 using ServiceBusExplorer.Infrastructure;
+using ServiceBusExplorer.Infrastructure.Models;
 using ServiceBusExplorer.UI.Models;
 
 namespace ServiceBusExplorer.UI;
@@ -19,10 +20,10 @@ namespace ServiceBusExplorer.UI;
 public partial class MessageListViewModel : ObservableObject
 {
     private readonly MessageService _messageService;
-    private readonly string _connectionString;
-    private readonly Func<string, string, SendMessageDialogViewModel> _sendDialogVmFactory;
+    private readonly ServiceBusAuthContext _authContext;
+    private readonly Func<ServiceBusAuthContext, string, SendMessageDialogViewModel> _sendDialogVmFactory;
     private readonly ILogService _logService;
-    private readonly Func<string, INamespaceProvider> _providerFactory;
+    private readonly Func<ServiceBusAuthContext, INamespaceProvider> _providerFactory;
     private CancellationTokenSource? _loadingCts;
 
     [ObservableProperty] private bool isLoading;
@@ -81,14 +82,14 @@ public partial class MessageListViewModel : ObservableObject
     public IRelayCommand BulkResubmitCommand { get; }
 
     public MessageListViewModel(
-        MessageService messageService, 
-        string connectionString, 
-        Func<string, string, SendMessageDialogViewModel> sendDialogVmFactory,
+        MessageService messageService,
+        ServiceBusAuthContext authContext,
+        Func<ServiceBusAuthContext, string, SendMessageDialogViewModel> sendDialogVmFactory,
         ILogService logService,
-        Func<string, INamespaceProvider> providerFactory)
+        Func<ServiceBusAuthContext, INamespaceProvider> providerFactory)
     {
         _messageService = messageService;
-        _connectionString = connectionString;
+        _authContext = authContext;
         _sendDialogVmFactory = sendDialogVmFactory;
         _logService = logService;
         _providerFactory = providerFactory;
@@ -199,7 +200,7 @@ public partial class MessageListViewModel : ObservableObject
             CurrentPage = 1;
 
             // Check if queue or subscription has auto-forwarding enabled
-            await using var provider = _providerFactory(_connectionString);
+            await using var provider = _providerFactory(_authContext);
             
             if (string.IsNullOrEmpty(subscription)) // It's a queue
             {
@@ -230,7 +231,7 @@ public partial class MessageListViewModel : ObservableObject
 
             // First, get message counts
             var (activeCount, deadLetterCount) = await _messageService.GetMessageCountsAsync(
-                _connectionString,
+                _authContext,
                 entityPath,
                 subscription,
                 _loadingCts.Token);
@@ -291,7 +292,7 @@ public partial class MessageListViewModel : ObservableObject
             
             // Get paged messages with filter
             var pagedResult = await _messageService.GetPagedMessagesAsync(
-                _connectionString,
+                _authContext,
                 _currentEntityPath,
                 _currentSubscription,
                 CurrentPage,
@@ -378,7 +379,7 @@ public partial class MessageListViewModel : ObservableObject
 
         _logService.LogInfo("MessageListViewModel", $"Opening send message dialog for: {_currentEntityPath}");
             
-        var dialogVm = _sendDialogVmFactory(_connectionString, _currentEntityPath);
+        var dialogVm = _sendDialogVmFactory(_authContext, _currentEntityPath);
         var dialog = new SendMessageDialog { DataContext = dialogVm };
         
         // Subscribe to close event
@@ -413,7 +414,7 @@ public partial class MessageListViewModel : ObservableObject
         {
             // First, update message counts
             var (activeCount, deadLetterCount) = await _messageService.GetMessageCountsAsync(
-                _connectionString,
+                _authContext,
                 _currentEntityPath,
                 _currentSubscription);
 
@@ -616,7 +617,7 @@ public partial class MessageListViewModel : ObservableObject
             // Send the edited message as new
             Console.WriteLine($"[EditAndResendAsync] Sending edited message");
             await _messageService.ResubmitMessageAsync(
-                _connectionString,
+                _authContext,
                 _currentEntityPath!,
                 viewModel.MessageBody,
                 viewModel.ContentType,
@@ -634,7 +635,7 @@ public partial class MessageListViewModel : ObservableObject
                     if (isDeadLetter)
                     {
                         await _messageService.DeleteDeadLetterMessageAsync(
-                            _connectionString,
+                            _authContext,
                             queueOrTopic,
                             subscription,
                             originalMessageId);
@@ -642,7 +643,7 @@ public partial class MessageListViewModel : ObservableObject
                     else
                     {
                         await _messageService.DeleteActiveMessageAsync(
-                            _connectionString,
+                            _authContext,
                             queueOrTopic,
                             subscription,
                             originalMessageId);
@@ -735,7 +736,7 @@ public partial class MessageListViewModel : ObservableObject
             // Resubmit the message
             _logService.LogInfo("MessageListViewModel", $"Resubmitting message {messageId}");
             await _messageService.ResubmitMessageAsync(
-                _connectionString,
+                _authContext,
                 _currentEntityPath,
                 SelectedMessage.Body ?? string.Empty,
                 SelectedMessage.ContentType,
@@ -750,7 +751,7 @@ public partial class MessageListViewModel : ObservableObject
                     Console.WriteLine($"[ResubmitMessageAsync] Deleting message {messageId} from dead letter queue");
                     var (queueOrTopic, subscription) = ParseEntityPath(_currentEntityPath);
                     await _messageService.DeleteDeadLetterMessageAsync(
-                        _connectionString,
+                        _authContext,
                         queueOrTopic,
                         subscription,
                         messageId);
@@ -833,7 +834,7 @@ public partial class MessageListViewModel : ObservableObject
                 var (queueOrTopic, subscription) = ParseEntityPath(_currentEntityPath);
                 
                 var purgedCount = await _messageService.PurgeMessagesAsync(
-                    _connectionString,
+                    _authContext,
                     queueOrTopic,
                     subscription,
                     dialogResult.selectedOption);
@@ -916,7 +917,7 @@ public partial class MessageListViewModel : ObservableObject
                 if (isDeadLetter)
                 {
                     await _messageService.DeleteDeadLetterMessageAsync(
-                        _connectionString,
+                        _authContext,
                         queueOrTopic,
                         subscription,
                         messageId);
@@ -924,7 +925,7 @@ public partial class MessageListViewModel : ObservableObject
                 else
                 {
                     await _messageService.DeleteActiveMessageAsync(
-                        _connectionString,
+                        _authContext,
                         queueOrTopic,
                         subscription,
                         messageId);
@@ -1035,7 +1036,7 @@ public partial class MessageListViewModel : ObservableObject
                 try
                 {
                     await _messageService.ResubmitDeadLetterMessageAsync(
-                        _connectionString,
+                        _authContext,
                         _currentEntityPath!,
                         message.MessageId,
                         _currentSubscription);
