@@ -13,16 +13,17 @@ using CommunityToolkit.Mvvm.Input;
 using ServiceBusExplorer.Core;
 using ServiceBusExplorer.Core.Models;
 using ServiceBusExplorer.Infrastructure;
+using ServiceBusExplorer.Infrastructure.Models;
 
 namespace ServiceBusExplorer.UI;
 
 public partial class MainWindowViewModel : ObservableObject
 {
     private readonly Func<ConnectDialogViewModel> _dialogVmFactory;
-    private readonly Func<string, MessageListViewModel> _msgVmFactory;
-    private readonly Func<string, INamespaceProvider> _providerFactory;
+    private readonly Func<ServiceBusAuthContext, MessageListViewModel> _msgVmFactory;
+    private readonly Func<ServiceBusAuthContext, INamespaceProvider> _providerFactory;
     private readonly ILogService _logService;
-    private string? _currentConnectionString;
+    private ServiceBusAuthContext? _currentAuthContext;
 
     /// <summary>Hierarchical node list (TreeView ItemsSource)</summary>
     public ObservableCollection<NamespaceNode> Nodes { get; } = [];
@@ -58,8 +59,8 @@ public partial class MainWindowViewModel : ObservableObject
     
     public MainWindowViewModel(
         Func<ConnectDialogViewModel> dialogVmFactory,
-        Func<string, MessageListViewModel> msgVmFactory,
-        Func<string, INamespaceProvider> providerFactory,
+        Func<ServiceBusAuthContext, MessageListViewModel> msgVmFactory,
+        Func<ServiceBusAuthContext, INamespaceProvider> providerFactory,
         LogViewModel logViewModel,
         ILogService logService)
     {
@@ -77,10 +78,10 @@ public partial class MainWindowViewModel : ObservableObject
     partial void OnSelectedNodeChanged(NamespaceNode? value)
     {
         Console.WriteLine($"[OnSelectedNodeChanged] Node selected: {value?.Name}, Type: {value?.EntityType}, Path: {value?.FullPath}");
-        
-        if (value is null || _currentConnectionString is null)
+
+        if (value is null || _currentAuthContext is null)
         {
-            Console.WriteLine("[OnSelectedNodeChanged] Early return - value or connection string is null");
+            Console.WriteLine("[OnSelectedNodeChanged] Early return - value or auth context is null");
             return;
         }
 
@@ -97,7 +98,7 @@ public partial class MainWindowViewModel : ObservableObject
         if (MessageList is null)
         {
             Console.WriteLine("[OnSelectedNodeChanged] Creating new MessageList");
-            MessageList = _msgVmFactory(_currentConnectionString);
+            MessageList = _msgVmFactory(_currentAuthContext);
         }
 
         // Build full path
@@ -180,14 +181,14 @@ public partial class MainWindowViewModel : ObservableObject
     private async Task OpenConnectDialogAsync()
     {
         _logService.LogInfo("MainWindowViewModel", "Opening connection dialog");
-        
+
         var dialogVm = _dialogVmFactory();
         var dialog   = new ConnectDialog { DataContext = dialogVm };
 
         var owner = (Application.Current?.ApplicationLifetime as
                      IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-        var entities = await dialog.ShowDialog<IReadOnlyList<NamespaceEntity>>(owner!);
-        if (entities is null)
+        var result = await dialog.ShowDialog<(IReadOnlyList<NamespaceEntity>? entities, ServiceBusAuthContext? authContext)>(owner!);
+        if (result.entities is null || result.authContext is null)
         {
             _logService.LogInfo("MainWindowViewModel", "Connection dialog cancelled");
             return;
@@ -198,20 +199,20 @@ public partial class MainWindowViewModel : ObservableObject
             IsConnecting = true;
             ErrorMessage = null;
             ConnectionProgress = "Validating connection...";
-            
-            // Save connection string
-            _currentConnectionString = dialogVm.ConnectionString!;
+
+            // Save auth context
+            _currentAuthContext = result.authContext;
 
             _logService.LogInfo("MainWindowViewModel", "Connecting to Service Bus namespace");
 
             ConnectionProgress = "Creating service client...";
             // Create ViewModel for right pane
-            MessageList = _msgVmFactory(_currentConnectionString);
+            MessageList = _msgVmFactory(_currentAuthContext);
 
             ConnectionProgress = "Loading entities...";
             // Create INamespaceProvider and NamespaceService to get hierarchical nodes
-            await using var provider = _providerFactory(_currentConnectionString);
-            var namespaceService = new NamespaceService(provider, _currentConnectionString);
+            await using var provider = _providerFactory(_currentAuthContext);
+            var namespaceService = new NamespaceService(provider, _currentAuthContext);
             var nodes = await namespaceService.GetNodesAsync(includeMessageCounts: false);
             
             Nodes.Clear();
@@ -239,17 +240,17 @@ public partial class MainWindowViewModel : ObservableObject
     
     private async Task LoadNodeMessageCountsAsync(NamespaceNode? node)
     {
-        if (node == null || string.IsNullOrEmpty(_currentConnectionString))
+        if (node == null || _currentAuthContext == null)
         {
             return;
         }
 
         _logService.LogInfo("MainWindowViewModel", $"LoadNodeMessageCountsAsync called for node: {node.Name}, Children: {node.Children.Count}");
-        
+
         try
         {
-            var adminClient = new ServiceBusAdministrationClient(_currentConnectionString);
-            await using var provider = _providerFactory(_currentConnectionString);
+            var adminClient = _currentAuthContext.CreateAdminClient();
+            await using var provider = _providerFactory(_currentAuthContext);
             
             // For topic nodes, load subscriptions first if not already loaded
             // Check if we have a placeholder child (Loading...)

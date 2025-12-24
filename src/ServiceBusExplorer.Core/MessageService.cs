@@ -10,15 +10,15 @@ namespace ServiceBusExplorer.Core;
 ///     messages via <c>PeekAsync</c>.
 /// </summary>
 public sealed class MessageService(
-    Func<string, IMessagePeekProvider> providerFactory,
-    Func<string, IMessageDeleteProvider>? deleteProviderFactory = null,
-    Func<string, IMessagePurgeProvider>? purgeProviderFactory = null,
-    Func<string, IMessageResubmitProvider>? resubmitProviderFactory = null)
+    Func<ServiceBusAuthContext, IMessagePeekProvider> providerFactory,
+    Func<ServiceBusAuthContext, IMessageDeleteProvider>? deleteProviderFactory = null,
+    Func<ServiceBusAuthContext, IMessagePurgeProvider>? purgeProviderFactory = null,
+    Func<ServiceBusAuthContext, IMessageResubmitProvider>? resubmitProviderFactory = null)
 {
-    private readonly Func<string, IMessagePeekProvider> _providerFactory = providerFactory;
-    private readonly Func<string, IMessageDeleteProvider> _deleteProviderFactory = deleteProviderFactory ?? (cs => new AzureMessageDeleteProvider(cs));
-    private readonly Func<string, IMessagePurgeProvider> _purgeProviderFactory = purgeProviderFactory ?? (cs => new AzureMessagePurgeProvider(cs));
-    private readonly Func<string, IMessageResubmitProvider> _resubmitProviderFactory = resubmitProviderFactory ?? (cs => new AzureMessageResubmitProvider(cs));
+    private readonly Func<ServiceBusAuthContext, IMessagePeekProvider> _providerFactory = providerFactory;
+    private readonly Func<ServiceBusAuthContext, IMessageDeleteProvider> _deleteProviderFactory = deleteProviderFactory ?? (authContext => new AzureMessageDeleteProvider(authContext));
+    private readonly Func<ServiceBusAuthContext, IMessagePurgeProvider> _purgeProviderFactory = purgeProviderFactory ?? (authContext => new AzureMessagePurgeProvider(authContext));
+    private readonly Func<ServiceBusAuthContext, IMessageResubmitProvider> _resubmitProviderFactory = resubmitProviderFactory ?? (authContext => new AzureMessageResubmitProvider(authContext));
 
     /// <summary>
     ///     Peeks up to <paramref name="count"/> messages from the specified
@@ -32,13 +32,13 @@ public sealed class MessageService(
     /// <param name="count">Maximum messages to peek.</param>
     /// <param name="ct">Cancellation token.</param>
     public async Task<IReadOnlyList<ServiceBusReceivedMessageDto>> PeekAsync(
-        string connectionString,
+        ServiceBusAuthContext authContext,
         string queueOrTopic,
         string? subscription = null,
         int count            = 50,
         CancellationToken ct = default)
     {
-        await using var provider = _providerFactory(connectionString);
+        await using var provider = _providerFactory(authContext);
         return await provider.PeekAsync(queueOrTopic, subscription, count, ct);
     }
     
@@ -47,13 +47,13 @@ public sealed class MessageService(
     ///     sub-queue of the specified entity.
     /// </summary>
     public async Task<IReadOnlyList<ServiceBusReceivedMessageDto>> PeekDeadLetterAsync(
-        string connectionString,
+        ServiceBusAuthContext authContext,
         string queueOrTopic,
         string? subscription = null,
         int count            = 50,
         CancellationToken ct = default)
     {
-        await using var provider = _providerFactory(connectionString);
+        await using var provider = _providerFactory(authContext);
         return await provider.PeekDeadLetterAsync(queueOrTopic, subscription, count, ct);
     }
     
@@ -61,13 +61,13 @@ public sealed class MessageService(
     ///     Peeks messages from both active and dead-letter queues.
     /// </summary>
     public async Task<IReadOnlyList<ServiceBusReceivedMessageDto>> PeekAllAsync(
-        string connectionString,
+        ServiceBusAuthContext authContext,
         string queueOrTopic,
         string? subscription = null,
         int count            = 50,
         CancellationToken ct = default)
     {
-        await using var provider = _providerFactory(connectionString);
+        await using var provider = _providerFactory(authContext);
         
         var activeTask = provider.PeekAsync(queueOrTopic, subscription, count, ct);
         var deadLetterTask = provider.PeekDeadLetterAsync(queueOrTopic, subscription, count, ct);
@@ -85,7 +85,7 @@ public sealed class MessageService(
     ///     Retrieves paged messages from the specified queue or topic.
     /// </summary>
     public async Task<PagedResult<ServiceBusReceivedMessageDto>> GetPagedMessagesAsync(
-        string connectionString,
+        ServiceBusAuthContext authContext,
         string queueOrTopic,
         string? subscription,
         int pageNumber,
@@ -94,7 +94,7 @@ public sealed class MessageService(
         bool deadLetterOnly = false,
         CancellationToken ct = default)
     {
-        await using var provider = _providerFactory(connectionString);
+        await using var provider = _providerFactory(authContext);
         
         // Handle different filter cases
         if (deadLetterOnly)
@@ -201,12 +201,12 @@ public sealed class MessageService(
     ///     Gets the total count of messages in active and dead letter queues.
     /// </summary>
     public async Task<(int activeCount, int deadLetterCount)> GetMessageCountsAsync(
-        string connectionString,
+        ServiceBusAuthContext authContext,
         string queueOrTopic,
         string? subscription,
         CancellationToken ct = default)
     {
-        await using var provider = _providerFactory(connectionString);
+        await using var provider = _providerFactory(authContext);
         return await provider.GetMessageCountsAsync(queueOrTopic, subscription, ct);
     }
     
@@ -220,14 +220,14 @@ public sealed class MessageService(
     /// <param name="label">Message label/subject.</param>
     /// <param name="ct">Cancellation token.</param>
     public async Task ResubmitMessageAsync(
-        string connectionString,
+        ServiceBusAuthContext authContext,
         string queueOrTopic,
         string messageBody,
         string? contentType = null,
         string? label = null,
         CancellationToken ct = default)
     {
-        await using var sendProvider = new AzureMessageSendProvider(connectionString);
+        await using var sendProvider = new AzureMessageSendProvider(authContext);
         await sendProvider.SendMessageAsync(
             queueOrTopic,
             null,
@@ -247,13 +247,13 @@ public sealed class MessageService(
     /// <param name="messageId">Message ID to delete.</param>
     /// <param name="ct">Cancellation token.</param>
     public async Task DeleteActiveMessageAsync(
-        string connectionString,
+        ServiceBusAuthContext authContext,
         string queueOrTopic,
         string? subscription,
         string messageId,
         CancellationToken ct = default)
     {
-        await using var deleteProvider = _deleteProviderFactory(connectionString);
+        await using var deleteProvider = _deleteProviderFactory(authContext);
         await deleteProvider.DeleteActiveMessageAsync(
             queueOrTopic,
             subscription,
@@ -262,13 +262,13 @@ public sealed class MessageService(
     }
     
     public async Task DeleteDeadLetterMessageAsync(
-        string connectionString,
+        ServiceBusAuthContext authContext,
         string queueOrTopic,
         string? subscription,
         string messageId,
         CancellationToken ct = default)
     {
-        await using var deleteProvider = _deleteProviderFactory(connectionString);
+        await using var deleteProvider = _deleteProviderFactory(authContext);
         await deleteProvider.DeleteDeadLetterMessageAsync(
             queueOrTopic,
             subscription,
@@ -286,13 +286,13 @@ public sealed class MessageService(
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Total number of messages purged.</returns>
     public async Task<int> PurgeMessagesAsync(
-        string connectionString,
+        ServiceBusAuthContext authContext,
         string queueOrTopic,
         string? subscription,
         PurgeOption option,
         CancellationToken ct = default)
     {
-        await using var purgeProvider = _purgeProviderFactory(connectionString);
+        await using var purgeProvider = _purgeProviderFactory(authContext);
         
         var purgedCount = 0;
         
@@ -319,13 +319,13 @@ public sealed class MessageService(
     ///     Resubmits a dead letter message back to the active queue.
     /// </summary>
     public async Task ResubmitDeadLetterMessageAsync(
-        string connectionString,
+        ServiceBusAuthContext authContext,
         string queueOrTopic,
         string messageId,
         string? subscription = null,
         CancellationToken ct = default)
     {
-        await using var resubmitProvider = _resubmitProviderFactory(connectionString);
+        await using var resubmitProvider = _resubmitProviderFactory(authContext);
         await resubmitProvider.ResubmitMessageAsync(
             queueOrTopic,
             messageId,

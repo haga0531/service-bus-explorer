@@ -1,10 +1,17 @@
 using Azure.Messaging.ServiceBus;
+using ServiceBusExplorer.Infrastructure.Models;
 
 namespace ServiceBusExplorer.Infrastructure;
 
-public sealed class AzureMessageDeleteProvider(string connectionString) : IMessageDeleteProvider
+public sealed class AzureMessageDeleteProvider : IMessageDeleteProvider
 {
-    private readonly ServiceBusClient _client = new ServiceBusClient(connectionString);
+    private readonly ServiceBusClient _client;
+
+    public AzureMessageDeleteProvider(ServiceBusAuthContext authContext)
+    {
+        ArgumentNullException.ThrowIfNull(authContext);
+        _client = authContext.CreateServiceBusClient();
+    }
 
     public async Task DeleteActiveMessageAsync(
         string queueOrTopic,
@@ -13,16 +20,16 @@ public sealed class AzureMessageDeleteProvider(string connectionString) : IMessa
         CancellationToken cancellationToken = default)
     {
         Console.WriteLine($"[AzureMessageDeleteProvider] DeleteActiveMessageAsync called - Queue/Topic: {queueOrTopic}, Subscription: {subscription ?? "null"}, MessageId: {messageId}");
-        
+
         var receiver = subscription is null
             ? _client.CreateReceiver(queueOrTopic, new ServiceBusReceiverOptions
-                { 
+                {
                     ReceiveMode = ServiceBusReceiveMode.PeekLock,
                     SubQueue = SubQueue.None
                 })
             : _client.CreateReceiver(queueOrTopic, subscription,
-                new ServiceBusReceiverOptions 
-                { 
+                new ServiceBusReceiverOptions
+                {
                     ReceiveMode = ServiceBusReceiveMode.PeekLock,
                     SubQueue = SubQueue.None
                 });
@@ -31,26 +38,26 @@ public sealed class AzureMessageDeleteProvider(string connectionString) : IMessa
         {
             var maxAttempts = 10;
             var batchSize = 10;
-            
+
             for (var i = 0; i < maxAttempts; i++)
             {
                 var messages = await receiver.ReceiveMessagesAsync(
                     maxMessages: batchSize,
                     maxWaitTime: TimeSpan.FromSeconds(1),
                     cancellationToken: cancellationToken);
-                
+
                 if (!messages.Any())
                 {
                     Console.WriteLine($"[AzureMessageDeleteProvider] No more messages in active queue");
                     break;
                 }
-                
+
                 Console.WriteLine($"[AzureMessageDeleteProvider] Received {messages.Count} messages in batch {i + 1}");
-                
+
                 foreach (var message in messages)
                 {
                     Console.WriteLine($"[AzureMessageDeleteProvider] Checking message ID: {message.MessageId} (looking for: {messageId})");
-                    
+
                     if (message.MessageId == messageId)
                     {
                         Console.WriteLine($"[AzureMessageDeleteProvider] Found target message! Attempting to complete...");
@@ -67,7 +74,7 @@ public sealed class AzureMessageDeleteProvider(string connectionString) : IMessa
                     }
                 }
             }
-            
+
             Console.WriteLine($"[AzureMessageDeleteProvider] Message {messageId} not found in active queue after {maxAttempts} attempts");
         }
         finally
@@ -83,16 +90,16 @@ public sealed class AzureMessageDeleteProvider(string connectionString) : IMessa
         CancellationToken cancellationToken = default)
     {
         Console.WriteLine($"[AzureMessageDeleteProvider] DeleteDeadLetterMessageAsync called - Queue/Topic: {queueOrTopic}, Subscription: {subscription ?? "null"}, MessageId: {messageId}");
-        
+
         var receiver = subscription is null
             ? _client.CreateReceiver(queueOrTopic, new ServiceBusReceiverOptions
-                { 
+                {
                     ReceiveMode = ServiceBusReceiveMode.PeekLock,
                     SubQueue = SubQueue.DeadLetter
                 })
             : _client.CreateReceiver(queueOrTopic, subscription,
-                new ServiceBusReceiverOptions 
-                { 
+                new ServiceBusReceiverOptions
+                {
                     ReceiveMode = ServiceBusReceiveMode.PeekLock,
                     SubQueue = SubQueue.DeadLetter
                 });
@@ -107,31 +114,31 @@ public sealed class AzureMessageDeleteProvider(string connectionString) : IMessa
             {
                 Console.WriteLine($"[AzureMessageDeleteProvider] Peeked message ID: {peeked.MessageId}");
             }
-            
+
             // Receive messages and find the one with matching ID
             // We need to receive multiple messages as we can't directly receive by ID
             var maxAttempts = 10;
             var batchSize = 10;
-            
+
             for (var i = 0; i < maxAttempts; i++)
             {
                 var messages = await receiver.ReceiveMessagesAsync(
                     maxMessages: batchSize,
                     maxWaitTime: TimeSpan.FromSeconds(5),
                     cancellationToken: cancellationToken);
-                
+
                 if (!messages.Any())
                 {
                     Console.WriteLine($"[AzureMessageDeleteProvider] No more messages in dead letter queue after waiting 5 seconds");
                     break;
                 }
-                
+
                 Console.WriteLine($"[AzureMessageDeleteProvider] Received {messages.Count} messages in batch {i + 1}");
-                
+
                 foreach (var message in messages)
                 {
                     Console.WriteLine($"[AzureMessageDeleteProvider] Checking message ID: {message.MessageId} (looking for: {messageId})");
-                    
+
                     if (message.MessageId == messageId)
                     {
                         Console.WriteLine($"[AzureMessageDeleteProvider] Found target message! Attempting to complete...");
@@ -148,7 +155,7 @@ public sealed class AzureMessageDeleteProvider(string connectionString) : IMessa
                     }
                 }
             }
-            
+
             Console.WriteLine($"[AzureMessageDeleteProvider] Message {messageId} not found in dead letter queue after {maxAttempts} attempts");
         }
         finally

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using ServiceBusExplorer.Core.Models;
+using ServiceBusExplorer.Infrastructure.Models;
 
 namespace ServiceBusExplorer.UI;
 
@@ -26,7 +27,7 @@ public partial class ConnectDialog : Window
         };
     }
 
-    private void OnCloseRequested(object? sender, IReadOnlyList<NamespaceEntity>? result)
+    private void OnCloseRequested(object? sender, (IReadOnlyList<NamespaceEntity>? entities, ServiceBusAuthContext? authContext) result)
     {
         Close(result);   // ★ ShowDialog<T> へ返す
     }

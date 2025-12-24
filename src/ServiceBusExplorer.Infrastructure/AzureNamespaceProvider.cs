@@ -1,4 +1,5 @@
 using Azure.Messaging.ServiceBus.Administration;
+using ServiceBusExplorer.Infrastructure.Models;
 
 namespace ServiceBusExplorer.Infrastructure;
 
@@ -10,10 +11,10 @@ public sealed class AzureNamespaceProvider : INamespaceProvider, IAsyncDisposabl
 {
     private readonly ServiceBusAdministrationClient _admin;
 
-    public AzureNamespaceProvider(string connectionString)
+    public AzureNamespaceProvider(ServiceBusAuthContext authContext)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
-        _admin = new ServiceBusAdministrationClient(connectionString);
+        ArgumentNullException.ThrowIfNull(authContext);
+        _admin = authContext.CreateAdminClient();
     }
 
     public async Task<IEnumerable<string>> GetQueuesAsync(CancellationToken ct = default)

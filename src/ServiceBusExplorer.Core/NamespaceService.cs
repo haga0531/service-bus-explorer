@@ -1,13 +1,26 @@
 ﻿using Azure.Messaging.ServiceBus.Administration;
 using ServiceBusExplorer.Core.Models;
 using ServiceBusExplorer.Infrastructure;
+using ServiceBusExplorer.Infrastructure.Models;
 
 namespace ServiceBusExplorer.Core;
 
-public class NamespaceService(INamespaceProvider provider, string connectionString)
+public class NamespaceService
 {
-    private readonly INamespaceProvider _provider = provider;
-    private readonly string _connectionString = connectionString;
+    private readonly INamespaceProvider _provider;
+    private readonly ServiceBusAuthContext _authContext;
+
+    public NamespaceService(INamespaceProvider provider, string connectionString)
+    {
+        _provider = provider;
+        _authContext = new ConnectionStringAuthContext(connectionString);
+    }
+
+    public NamespaceService(INamespaceProvider provider, ServiceBusAuthContext authContext)
+    {
+        _provider = provider;
+        _authContext = authContext;
+    }
 
     public async Task<IReadOnlyList<NamespaceEntity>> GetEntitiesAsync(CancellationToken ct = default)
     {
@@ -24,7 +37,7 @@ public class NamespaceService(INamespaceProvider provider, string connectionStri
     
     public async Task<IReadOnlyList<NamespaceNode>> GetNodesAsync(bool includeMessageCounts = false, CancellationToken ct = default)
     {
-        _ = includeMessageCounts ? new ServiceBusAdministrationClient(_connectionString) : null;
+        _ = includeMessageCounts ? _authContext.CreateAdminClient() : null;
 
         // Create root nodes for Queues and Topics
         var queuesNode = new NamespaceNode 

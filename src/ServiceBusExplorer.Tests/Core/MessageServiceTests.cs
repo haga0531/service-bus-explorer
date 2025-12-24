@@ -16,6 +16,7 @@ public class MessageServiceTests
     private Mock<IMessageResubmitProvider> _mockResubmitProvider;
     private MessageService _sut;
     private const string ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=test;SharedAccessKey=test";
+    private ServiceBusAuthContext _authContext;
 
     [SetUp]
     public void SetUp()
@@ -24,7 +25,9 @@ public class MessageServiceTests
         _mockDeleteProvider = new Mock<IMessageDeleteProvider>();
         _mockPurgeProvider = new Mock<IMessagePurgeProvider>();
         _mockResubmitProvider = new Mock<IMessageResubmitProvider>();
-        
+
+        _authContext = new ConnectionStringAuthContext(ConnectionString);
+
         _sut = new MessageService(
             _ => _mockPeekProvider.Object,
             _ => _mockDeleteProvider.Object,
@@ -55,7 +58,7 @@ public class MessageServiceTests
 
         // Act
         var result = await _sut.GetPagedMessagesAsync(
-            ConnectionString, "queue1", null, 1, 50, activeOnly: true);
+            _authContext, "queue1", null, 1, 50, activeOnly: true);
 
         // Assert
         result.Should().Be(pagedResult);
@@ -85,7 +88,7 @@ public class MessageServiceTests
 
         // Act
         var result = await _sut.GetPagedMessagesAsync(
-            ConnectionString, "queue1", null, 1, 50, deadLetterOnly: true);
+            _authContext, "queue1", null, 1, 50, deadLetterOnly: true);
 
         // Assert
         result.Should().Be(pagedResult);
@@ -131,7 +134,7 @@ public class MessageServiceTests
 
         // Act
         var result = await _sut.GetPagedMessagesAsync(
-            ConnectionString, "queue1", null, 1, 50, activeOnly: false, deadLetterOnly: false);
+            _authContext, "queue1", null, 1, 50, activeOnly: false, deadLetterOnly: false);
 
         // Assert
         result.Items.Should().HaveCount(2);
@@ -148,7 +151,7 @@ public class MessageServiceTests
             .ReturnsAsync((100, 10));
 
         // Act
-        var result = await _sut.GetMessageCountsAsync(ConnectionString, "queue1", null);
+        var result = await _sut.GetMessageCountsAsync(_authContext, "queue1", null);
 
         // Assert
         result.activeCount.Should().Be(100);
@@ -162,7 +165,7 @@ public class MessageServiceTests
         const string messageId = "msg123";
 
         // Act
-        await _sut.DeleteActiveMessageAsync(ConnectionString, "queue1", null, messageId);
+        await _sut.DeleteActiveMessageAsync(_authContext, "queue1", null, messageId);
 
         // Assert
         _mockDeleteProvider.Verify(x => x.DeleteActiveMessageAsync("queue1", null, messageId, It.IsAny<CancellationToken>()), Times.Once);
@@ -175,7 +178,7 @@ public class MessageServiceTests
         const string messageId = "msg123";
 
         // Act
-        await _sut.DeleteDeadLetterMessageAsync(ConnectionString, "queue1", null, messageId);
+        await _sut.DeleteDeadLetterMessageAsync(_authContext, "queue1", null, messageId);
 
         // Assert
         _mockDeleteProvider.Verify(x => x.DeleteDeadLetterMessageAsync("queue1", null, messageId, It.IsAny<CancellationToken>()), Times.Once);
@@ -185,21 +188,21 @@ public class MessageServiceTests
     public async Task PurgeMessagesAsync_ShouldCallPurgeProviderBasedOnOption()
     {
         // Act & Assert - All messages
-        await _sut.PurgeMessagesAsync(ConnectionString, "queue1", null, PurgeOption.All);
+        await _sut.PurgeMessagesAsync(_authContext, "queue1", null, PurgeOption.All);
         _mockPurgeProvider.Verify(x => x.PurgeActiveMessagesAsync("queue1", null, It.IsAny<CancellationToken>()), Times.Once);
         _mockPurgeProvider.Verify(x => x.PurgeDeadLetterMessagesAsync("queue1", null, It.IsAny<CancellationToken>()), Times.Once);
         
         _mockPurgeProvider.Reset();
         
         // Act & Assert - Active only
-        await _sut.PurgeMessagesAsync(ConnectionString, "queue1", null, PurgeOption.ActiveOnly);
+        await _sut.PurgeMessagesAsync(_authContext, "queue1", null, PurgeOption.ActiveOnly);
         _mockPurgeProvider.Verify(x => x.PurgeActiveMessagesAsync("queue1", null, It.IsAny<CancellationToken>()), Times.Once);
         _mockPurgeProvider.Verify(x => x.PurgeDeadLetterMessagesAsync("queue1", null, It.IsAny<CancellationToken>()), Times.Never);
         
         _mockPurgeProvider.Reset();
         
         // Act & Assert - Dead letter only
-        await _sut.PurgeMessagesAsync(ConnectionString, "queue1", null, PurgeOption.DeadLetterOnly);
+        await _sut.PurgeMessagesAsync(_authContext, "queue1", null, PurgeOption.DeadLetterOnly);
         _mockPurgeProvider.Verify(x => x.PurgeActiveMessagesAsync("queue1", null, It.IsAny<CancellationToken>()), Times.Never);
         _mockPurgeProvider.Verify(x => x.PurgeDeadLetterMessagesAsync("queue1", null, It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -212,7 +215,7 @@ public class MessageServiceTests
         const string queueName = "queue1";
 
         // Act
-        await _sut.ResubmitDeadLetterMessageAsync(ConnectionString, queueName, messageId);
+        await _sut.ResubmitDeadLetterMessageAsync(_authContext, queueName, messageId);
 
         // Assert
         _mockResubmitProvider.Verify(x => x.ResubmitMessageAsync(queueName, messageId, null, It.IsAny<CancellationToken>()), Times.Once);
@@ -227,7 +230,7 @@ public class MessageServiceTests
         const string subscriptionName = "sub1";
 
         // Act
-        await _sut.ResubmitDeadLetterMessageAsync(ConnectionString, topicName, messageId, subscriptionName);
+        await _sut.ResubmitDeadLetterMessageAsync(_authContext, topicName, messageId, subscriptionName);
 
         // Assert
         _mockResubmitProvider.Verify(x => x.ResubmitMessageAsync(topicName, messageId, subscriptionName, It.IsAny<CancellationToken>()), Times.Once);

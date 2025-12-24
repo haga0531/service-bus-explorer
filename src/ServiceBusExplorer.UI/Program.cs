@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ServiceBusExplorer.Core;
 using ServiceBusExplorer.Infrastructure;
+using ServiceBusExplorer.Infrastructure.Models;
 
 namespace ServiceBusExplorer.UI;
 
@@ -36,37 +37,43 @@ internal static class Program
         // Core
         // LogService (singleton for app-wide logging)
         services.AddSingleton<ILogService, LogService>();
-        
+
         // NamespaceService factory (needs INamespaceProvider and connection string)
         services.AddTransient<Func<INamespaceProvider, string, NamespaceService>>(sp =>
             (provider, connectionString) => new NamespaceService(provider, connectionString));
 
-        // Factory for INamespaceProvider (needs connection string)
-        services.AddTransient<Func<string, INamespaceProvider>>(sp =>
-            cs => new AzureNamespaceProvider(cs));
+        // Factory for INamespaceProvider (needs auth context)
+        services.AddTransient<Func<ServiceBusAuthContext, INamespaceProvider>>(sp =>
+            authContext => new AzureNamespaceProvider(authContext));
 
         // ViewModels
         services.AddTransient<ConnectDialogViewModel>();
         services.AddTransient<Func<ConnectDialogViewModel>>(sp =>
-            () => sp.GetRequiredService<ConnectDialogViewModel>());
+            sp.GetRequiredService<ConnectDialogViewModel>);
         services.AddTransient<LogViewModel>();
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MessageService>();
-        services.AddTransient<Func<string, IMessagePeekProvider>>(sp =>
-            cs => new AzureMessagePeekProvider(cs));
-        services.AddTransient<Func<string, IMessageSendProvider>>(sp =>
-            cs => new AzureMessageSendProvider(cs));
-        services.AddTransient<Func<string, MessageListViewModel>>(sp =>
-            cs => new MessageListViewModel(
-                sp.GetRequiredService<MessageService>(), 
-                cs,
-                sp.GetRequiredService<Func<string, string, SendMessageDialogViewModel>>(),
+        services.AddTransient<Func<ServiceBusAuthContext, IMessagePeekProvider>>(sp =>
+            authContext => new AzureMessagePeekProvider(authContext));
+        services.AddTransient<Func<ServiceBusAuthContext, IMessageSendProvider>>(sp =>
+            authContext => new AzureMessageSendProvider(authContext));
+        services.AddTransient<Func<ServiceBusAuthContext, IMessageDeleteProvider>>(sp =>
+            authContext => new AzureMessageDeleteProvider(authContext));
+        services.AddTransient<Func<ServiceBusAuthContext, IMessagePurgeProvider>>(sp =>
+            authContext => new AzureMessagePurgeProvider(authContext));
+        services.AddTransient<Func<ServiceBusAuthContext, IMessageResubmitProvider>>(sp =>
+            authContext => new AzureMessageResubmitProvider(authContext));
+        services.AddTransient<Func<ServiceBusAuthContext, MessageListViewModel>>(sp =>
+            authContext => new MessageListViewModel(
+                sp.GetRequiredService<MessageService>(),
+                authContext,
+                sp.GetRequiredService<Func<ServiceBusAuthContext, string, SendMessageDialogViewModel>>(),
                 sp.GetRequiredService<ILogService>(),
-                sp.GetRequiredService<Func<string, INamespaceProvider>>()));
-        services.AddTransient<Func<string, string, SendMessageDialogViewModel>>(sp =>
-            (connectionString, entityPath) => new SendMessageDialogViewModel(
-                sp.GetRequiredService<Func<string, IMessageSendProvider>>(),
-                connectionString,
+                sp.GetRequiredService<Func<ServiceBusAuthContext, INamespaceProvider>>()));
+        services.AddTransient<Func<ServiceBusAuthContext, string, SendMessageDialogViewModel>>(sp =>
+            (authContext, entityPath) => new SendMessageDialogViewModel(
+                sp.GetRequiredService<Func<ServiceBusAuthContext, IMessageSendProvider>>(),
+                authContext,
                 entityPath));
     }
 

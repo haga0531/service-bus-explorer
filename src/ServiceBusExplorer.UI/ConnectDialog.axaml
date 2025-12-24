@@ -4,49 +4,91 @@
         x:Class="ServiceBusExplorer.UI.ConnectDialog"
         x:DataType="vm:ConnectDialogViewModel"
         Title="Connect to Service Bus"
-        Width="500" Height="250"
+        Width="550" Height="380"
         WindowStartupLocation="CenterOwner">
-    
-    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,*,Auto">
-        <!-- Connection string input -->
-        <TextBlock Grid.Row="0" Text="Connection String:" Margin="0,0,0,8" />
-        <TextBox Grid.Row="1" 
-                 Text="{Binding ConnectionString}"
-                 Watermark="Endpoint=sb://xxx.servicebus.windows.net/;SharedAccessKeyName=..."
-                 Margin="0,0,0,8"
-                 IsEnabled="{Binding !IsConnecting}" />
-        
-        <!-- Error message -->
-        <Border Grid.Row="2" 
-                Background="#FFFFCC" 
+
+    <Grid Margin="20" RowDefinitions="*,Auto,Auto">
+        <!-- Tab Control for Authentication Methods -->
+        <TabControl Grid.Row="0" SelectedIndex="{Binding SelectedAuthTabIndex}">
+
+            <!-- Tab 1: Connection String -->
+            <TabItem Header="Connection String">
+                <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="0,16,0,0">
+                    <TextBlock Grid.Row="0"
+                               Text="Connection String:"
+                               Margin="0,0,0,8" />
+                    <TextBox Grid.Row="1"
+                             Text="{Binding ConnectionString}"
+                             Watermark="Endpoint=sb://xxx.servicebus.windows.net/;SharedAccessKeyName=..."
+                             Margin="0,0,0,8"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             Height="120"
+                             IsEnabled="{Binding !IsConnecting}" />
+                    <TextBlock Grid.Row="2"
+                               Text="Paste your connection string from Azure Portal"
+                               FontSize="11"
+                               Foreground="Gray"
+                               Margin="0,0,0,8" />
+                </Grid>
+            </TabItem>
+
+            <!-- Tab 2: Azure Credentials -->
+            <TabItem Header="Azure Credentials">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="0,16,0,0">
+                    <TextBlock Grid.Row="0"
+                               Text="Service Bus Namespace:"
+                               Margin="0,0,0,8" />
+                    <TextBox Grid.Row="1"
+                             Text="{Binding Namespace}"
+                             Watermark="myservicebus.servicebus.windows.net"
+                             Margin="0,0,0,8"
+                             IsEnabled="{Binding !IsConnecting}" />
+                    <TextBlock Grid.Row="2"
+                               Text="Full namespace URL (without https://)"
+                               FontSize="11"
+                               Foreground="Gray"
+                               Margin="0,0,0,8" />
+                    <TextBlock Grid.Row="3"
+                               Text="A browser window will open for Azure authentication when you connect."
+                               FontSize="11"
+                               Foreground="#2196F3"
+                               TextWrapping="Wrap"
+                               Margin="0,8,0,0" />
+                </Grid>
+            </TabItem>
+
+        </TabControl>
+
+        <!-- Error message (shown below tabs) -->
+        <Border Grid.Row="1"
+                Background="#FFFFCC"
                 Padding="8,4"
-                BorderBrush="#FFCC00" 
+                BorderBrush="#FFCC00"
                 BorderThickness="1"
                 CornerRadius="4"
-                Margin="0,0,0,16"
+                Margin="0,8,0,16"
                 IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-            <TextBlock Text="{Binding ErrorMessage}" 
+            <TextBlock Text="{Binding ErrorMessage}"
                        Foreground="#CC0000"
                        TextWrapping="Wrap" />
         </Border>
-        
-        <!-- Spacer -->
-        <Panel Grid.Row="3" />
-        
+
         <!-- Buttons -->
-        <StackPanel Grid.Row="4" 
-                    Orientation="Horizontal" 
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
                     HorizontalAlignment="Right"
-                    Spacing="8">
-            <ProgressBar IsIndeterminate="True" 
+                    Spacing="8"
+                    Margin="0,8,0,0">
+            <ProgressBar IsIndeterminate="True"
                          Width="100"
                          Height="3"
                          VerticalAlignment="Center"
                          IsVisible="{Binding IsConnecting}" />
-            <Button Content="Cancel" 
+            <Button Content="Cancel"
                     Command="{Binding CancelCommand}"
                     IsEnabled="{Binding !IsConnecting}" />
-            <Button Content="Connect" 
+            <Button Content="Connect"
                     Command="{Binding ConnectCommand}"
                     IsDefault="True"
                     Classes="accent"
@@ -55,7 +97,7 @@
                     <Binding Path="IsConnecting" Converter="{x:Static BoolConverters.Not}" />
                 </Button.IsVisible>
             </Button>
-            <Button Content="Connecting..." 
+            <Button Content="Connecting..."
                     IsEnabled="False"
                     Classes="accent">
                 <Button.IsVisible>
