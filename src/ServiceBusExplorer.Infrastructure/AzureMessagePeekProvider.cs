@@ -1,6 +1,7 @@
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 using ServiceBusExplorer.Infrastructure.Models;
+using ServiceBusExplorer.Infrastructure.Utils;
 
 namespace ServiceBusExplorer.Infrastructure;
 
@@ -35,7 +36,7 @@ public sealed class AzureMessagePeekProvider : IMessagePeekProvider
                 m.Subject ?? string.Empty,
                 m.ContentType ?? string.Empty,
                 m.EnqueuedTime,
-                m.Body.ToString(),
+                StringUtils.DecodeEscapeSequences(m.Body.ToString()),
                 false))];
     }
 
@@ -65,7 +66,7 @@ public sealed class AzureMessagePeekProvider : IMessagePeekProvider
                 m.Subject ?? string.Empty,
                 m.ContentType ?? string.Empty,
                 m.EnqueuedTime,
-                m.Body.ToString(),
+                StringUtils.DecodeEscapeSequences(m.Body.ToString()),
                 true))];
     }
 
@@ -138,7 +139,7 @@ public sealed class AzureMessagePeekProvider : IMessagePeekProvider
                 m.Subject ?? string.Empty,
                 m.ContentType ?? string.Empty,
                 m.EnqueuedTime,
-                m.Body.ToString(),
+                StringUtils.DecodeEscapeSequences(m.Body.ToString()),
                 false))
             .ToList();
 
@@ -218,7 +219,7 @@ public sealed class AzureMessagePeekProvider : IMessagePeekProvider
                 m.Subject ?? string.Empty,
                 m.ContentType ?? string.Empty,
                 m.EnqueuedTime,
-                m.Body.ToString(),
+                StringUtils.DecodeEscapeSequences(m.Body.ToString()),
                 true))
             .ToList();
 
