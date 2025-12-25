@@ -29,18 +29,7 @@ A modern, cross-platform Azure Service Bus management tool built with .NET 8 and
 
 ### Installation
 
-#### Option 1: Homebrew (macOS/Linux) 🍺 **[Recommended]**
-
-```bash
-# Install with Homebrew
-brew tap haga0531/service-bus-explorer
-brew install service-bus-explorer
-
-# Launch
-service-bus-explorer
-```
-
-#### Option 2: Download Pre-built Binaries
+#### Option 1: Download Pre-built Binaries
 
 Download the latest release from the [Releases](https://github.com/haga0531/service-bus-explorer/releases) page.
 
@@ -70,7 +59,7 @@ chmod +x ServiceBusExplorer.UI
 ./ServiceBusExplorer.UI
 ```
 
-#### Option 3: Build from Source
+#### Option 2: Build from Source
 
 ```bash
 # Clone the repository
