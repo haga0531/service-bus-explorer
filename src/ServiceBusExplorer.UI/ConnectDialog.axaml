@@ -7,7 +7,7 @@
         Width="550" Height="380"
         WindowStartupLocation="CenterOwner">
 
-    <Grid Margin="20" RowDefinitions="*,Auto,Auto">
+    <Grid Margin="20" RowDefinitions="Auto,*,Auto">
         <!-- Tab Control for Authentication Methods -->
         <TabControl Grid.Row="0" SelectedIndex="{Binding SelectedAuthTabIndex}">
 
@@ -60,7 +60,7 @@
 
         </TabControl>
 
-        <!-- Error message (shown below tabs) -->
+        <!-- Error message (shown below tabs, fills remaining space) -->
         <Border Grid.Row="1"
                 Background="#FFFFCC"
                 Padding="8,4"
@@ -69,9 +69,12 @@
                 CornerRadius="4"
                 Margin="0,8,0,16"
                 IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-            <TextBlock Text="{Binding ErrorMessage}"
-                       Foreground="#CC0000"
-                       TextWrapping="Wrap" />
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+                <TextBlock Text="{Binding ErrorMessage}"
+                           Foreground="#CC0000"
+                           TextWrapping="Wrap" />
+            </ScrollViewer>
         </Border>
 
         <!-- Buttons -->
