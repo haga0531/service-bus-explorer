@@ -1,4 +1,5 @@
 using System;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Xml;
@@ -99,7 +100,8 @@ public partial class SendMessageDialogViewModel : ObservableObject
                     var jsonDoc = JsonDocument.Parse(MessageBody);
                     MessageBody = JsonSerializer.Serialize(jsonDoc.RootElement, new JsonSerializerOptions
                     {
-                        WriteIndented = true
+                        WriteIndented = true,
+                        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
                     });
                     ErrorMessage = null;
                     break;

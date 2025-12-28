@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -488,7 +489,8 @@ public partial class MessageListViewModel : ObservableObject
             var jsonDoc = JsonDocument.Parse(SelectedMessage.Body);
             var formattedJson = JsonSerializer.Serialize(jsonDoc.RootElement, new JsonSerializerOptions
             {
-                WriteIndented = true
+                WriteIndented = true,
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
             });
             
             // Create a new MessageViewModel with formatted body
@@ -555,7 +557,8 @@ public partial class MessageListViewModel : ObservableObject
             var jsonDoc = JsonDocument.Parse(value.Body);
             FormattedMessageBody = JsonSerializer.Serialize(jsonDoc.RootElement, new JsonSerializerOptions
             {
-                WriteIndented = true
+                WriteIndented = true,
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
             });
         }
         catch (JsonException)
