@@ -1,4 +1,5 @@
 using System;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Xml.Linq;
 using Avalonia.Controls;
@@ -48,9 +49,10 @@ public partial class EditMessageDialogViewModel(Window window) : ObservableObjec
         try
         {
             var jsonDoc = JsonDocument.Parse(MessageBody);
-            MessageBody = JsonSerializer.Serialize(jsonDoc, new JsonSerializerOptions 
-            { 
-                WriteIndented = true 
+            MessageBody = JsonSerializer.Serialize(jsonDoc, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
             });
         }
         catch (Exception ex)
