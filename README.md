@@ -74,7 +74,9 @@ dotnet run --project src/ServiceBusExplorer.UI
 
 1. **Connect to Service Bus**:
    - Click the "Connect" button
-   - Enter your Service Bus connection string
+   - Choose your authentication method:
+     - **Connection String**: Paste your full connection string from Azure Portal
+     - **Azure Credentials**: Enter your namespace URL (e.g., `myservicebus.servicebus.windows.net`) and sign in via browser
    - The namespace tree will populate with your queues and topics
 
 2. **Browse Messages**:
