@@ -42,6 +42,9 @@ tar -xzf ServiceBusExplorer-osx-arm64.tar.gz  # Apple Silicon
 
 # The archive contains "Service Bus Explorer.app"
 # Simply drag it to your Applications folder!
+
+# Note for macOS users: Since this app is not signed with an Apple Developer certificate, macOS Gatekeeper may block execution. To resolve this, run the following command:
+xattr -cr "/Applications/Service Bus Explorer.app"
 ```
 
 **Windows:**
