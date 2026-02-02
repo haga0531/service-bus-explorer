@@ -75,6 +75,33 @@ public partial class MainWindowViewModel : ObservableObject
         NodeExpandedCommand = new AsyncRelayCommand<NamespaceNode>(LoadNodeMessageCountsAsync);
     }
 
+    partial void OnMessageListChanged(MessageListViewModel? oldValue, MessageListViewModel? newValue)
+    {
+        // Unsubscribe from old MessageList
+        if (oldValue != null)
+        {
+            oldValue.PropertyChanged -= OnMessageListPropertyChanged;
+        }
+
+        // Subscribe to new MessageList
+        if (newValue != null)
+        {
+            newValue.PropertyChanged += OnMessageListPropertyChanged;
+        }
+    }
+
+    private void OnMessageListPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        // Update sidebar counts when MessageList counts change
+        if (SelectedNode != null && MessageList != null &&
+            (e.PropertyName == nameof(MessageListViewModel.ActiveCount) ||
+             e.PropertyName == nameof(MessageListViewModel.DeadLetterCount)))
+        {
+            SelectedNode.ActiveMessageCount = MessageList.ActiveCount;
+            SelectedNode.DeadLetterMessageCount = MessageList.DeadLetterCount;
+        }
+    }
+
     partial void OnSelectedNodeChanged(NamespaceNode? value)
     {
         Console.WriteLine($"[OnSelectedNodeChanged] Node selected: {value?.Name}, Type: {value?.EntityType}, Path: {value?.FullPath}");
