@@ -51,4 +51,5 @@ public record ServiceBusReceivedMessageDto(
     string ContentType,
     DateTimeOffset EnqueuedTime,
     string Body,
-    bool IsDeadLetter = false);
+    bool IsDeadLetter = false,
+    string? SessionId = null);

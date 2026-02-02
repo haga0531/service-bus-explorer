@@ -343,7 +343,8 @@ public partial class MessageListViewModel : ObservableObject
                     message.ContentType ?? "",
                     message.EnqueuedTime,
                     bodyText.Trim(),
-                    message.IsDeadLetter);
+                    message.IsDeadLetter,
+                    message.SessionId);
                 
                 // Subscribe to property changes to update selection count
                 messageViewModel.PropertyChanged += OnMessagePropertyChanged;
@@ -500,8 +501,9 @@ public partial class MessageListViewModel : ObservableObject
                 SelectedMessage.ContentType,
                 SelectedMessage.EnqueuedTime,
                 formattedJson,
-                SelectedMessage.IsDeadLetter);
-                
+                SelectedMessage.IsDeadLetter,
+                SelectedMessage.SessionId);
+
             // Update the selected message
             var index = Messages.IndexOf(SelectedMessage);
             if (index >= 0)
@@ -517,7 +519,7 @@ public partial class MessageListViewModel : ObservableObject
             {
                 var xmlDoc = XDocument.Parse(SelectedMessage.Body);
                 var formattedXml = xmlDoc.ToString();
-                
+
                 // Create a new MessageViewModel with formatted body
                 var formattedMessage = new MessageViewModel(
                     SelectedMessage.MessageId,
@@ -525,8 +527,9 @@ public partial class MessageListViewModel : ObservableObject
                     SelectedMessage.ContentType,
                     SelectedMessage.EnqueuedTime,
                     formattedXml,
-                    SelectedMessage.IsDeadLetter);
-                    
+                    SelectedMessage.IsDeadLetter,
+                    SelectedMessage.SessionId);
+
                 // Update the selected message
                 var index = Messages.IndexOf(SelectedMessage);
                 if (index >= 0)
@@ -616,7 +619,8 @@ public partial class MessageListViewModel : ObservableObject
             var originalMessageId = SelectedMessage.MessageId;
             var isDeadLetter = SelectedMessage.IsDeadLetter;
             var deleteOriginal = viewModel.DeleteOriginal;
-            
+            var sessionId = SelectedMessage.SessionId;
+
             // Send the edited message as new
             Console.WriteLine($"[EditAndResendAsync] Sending edited message");
             await _messageService.ResubmitMessageAsync(
@@ -624,7 +628,8 @@ public partial class MessageListViewModel : ObservableObject
                 _currentEntityPath!,
                 viewModel.MessageBody,
                 viewModel.ContentType,
-                null); // Label can be null for now
+                null, // Label can be null for now
+                sessionId);
             Console.WriteLine($"[EditAndResendAsync] Message sent successfully");
                 
             // Delete original message if requested
@@ -743,7 +748,8 @@ public partial class MessageListViewModel : ObservableObject
                 _currentEntityPath,
                 SelectedMessage.Body ?? string.Empty,
                 SelectedMessage.ContentType,
-                SelectedMessage.Label);
+                SelectedMessage.Label,
+                SelectedMessage.SessionId);
             _logService.LogInfo("MessageListViewModel", $"Message {messageId} resubmitted successfully");
                 
             // Delete from dead letter if requested
@@ -800,7 +806,10 @@ public partial class MessageListViewModel : ObservableObject
             // Create and show purge confirmation dialog
             var dialog = new PurgeConfirmDialog();
             var viewModel = new PurgeConfirmDialogViewModel();
-            viewModel.Initialize(_currentEntityPath, ActiveCount, DeadLetterCount);
+            // Use displayed message counts as fallback if ActiveCount/DeadLetterCount are 0
+            var activeForPurge = ActiveCount > 0 ? ActiveCount : Messages.Count(m => !m.IsDeadLetter);
+            var deadLetterForPurge = DeadLetterCount > 0 ? DeadLetterCount : Messages.Count(m => m.IsDeadLetter);
+            viewModel.Initialize(_currentEntityPath, activeForPurge, deadLetterForPurge);
             dialog.DataContext = viewModel;
             
             var owner = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop

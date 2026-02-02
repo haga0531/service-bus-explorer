@@ -9,6 +9,7 @@ public interface IMessageSendProvider : IAsyncDisposable
         Dictionary<string, object>? properties = null,
         string? contentType = null,
         string? label = null,
+        string? sessionId = null,
         CancellationToken ct = default);
         
     Task SendMessagesAsync(
