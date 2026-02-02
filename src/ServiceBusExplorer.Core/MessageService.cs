@@ -213,11 +213,12 @@ public sealed class MessageService(
     /// <summary>
     ///     Resubmits a message to the specified queue or topic.
     /// </summary>
-    /// <param name="connectionString">Namespace connection string.</param>
+    /// <param name="authContext">Authentication context.</param>
     /// <param name="queueOrTopic">Queue name or Topic name.</param>
     /// <param name="messageBody">Message body to send.</param>
     /// <param name="contentType">Content type of the message.</param>
     /// <param name="label">Message label/subject.</param>
+    /// <param name="sessionId">Session ID for session-enabled queues.</param>
     /// <param name="ct">Cancellation token.</param>
     public async Task ResubmitMessageAsync(
         ServiceBusAuthContext authContext,
@@ -225,6 +226,7 @@ public sealed class MessageService(
         string messageBody,
         string? contentType = null,
         string? label = null,
+        string? sessionId = null,
         CancellationToken ct = default)
     {
         await using var sendProvider = new AzureMessageSendProvider(authContext);
@@ -235,6 +237,7 @@ public sealed class MessageService(
             null,
             contentType,
             label,
+            sessionId,
             ct);
     }
     
