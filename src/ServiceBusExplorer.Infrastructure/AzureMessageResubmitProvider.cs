@@ -17,6 +17,7 @@ public sealed class AzureMessageResubmitProvider : IMessageResubmitProvider
         string queueOrTopic,
         string messageId,
         string? subscription = null,
+        bool deleteFromDeadLetter = true,
         CancellationToken cancellationToken = default)
     {
         Console.WriteLine($"[AzureMessageResubmitProvider] ResubmitMessageAsync called: Queue={queueOrTopic}, MessageId={messageId}, Subscription={subscription}");
@@ -122,8 +123,16 @@ public sealed class AzureMessageResubmitProvider : IMessageResubmitProvider
             // Send the message to the active queue
             await sender.SendMessageAsync(newMessage, cancellationToken);
 
-            // Complete (remove) the message from dead letter queue
-            await deadLetterReceiver.CompleteMessageAsync(targetMessage, cancellationToken);
+            if (deleteFromDeadLetter)
+            {
+                // Complete (remove) the message from dead letter queue
+                await deadLetterReceiver.CompleteMessageAsync(targetMessage, cancellationToken);
+            }
+            else
+            {
+                // Keep it in the DLQ; abandon releases the lock.
+                await deadLetterReceiver.AbandonMessageAsync(targetMessage, cancellationToken: cancellationToken);
+            }
         }
         finally
         {

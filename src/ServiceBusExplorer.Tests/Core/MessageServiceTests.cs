@@ -218,7 +218,7 @@ public class MessageServiceTests
         await _sut.ResubmitDeadLetterMessageAsync(_authContext, queueName, messageId);
 
         // Assert
-        _mockResubmitProvider.Verify(x => x.ResubmitMessageAsync(queueName, messageId, null, It.IsAny<CancellationToken>()), Times.Once);
+        _mockResubmitProvider.Verify(x => x.ResubmitMessageAsync(queueName, messageId, null, true, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
@@ -233,7 +233,20 @@ public class MessageServiceTests
         await _sut.ResubmitDeadLetterMessageAsync(_authContext, topicName, messageId, subscriptionName);
 
         // Assert
-        _mockResubmitProvider.Verify(x => x.ResubmitMessageAsync(topicName, messageId, subscriptionName, It.IsAny<CancellationToken>()), Times.Once);
+        _mockResubmitProvider.Verify(x => x.ResubmitMessageAsync(topicName, messageId, subscriptionName, true, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ResubmitDeadLetterMessageAsync_WhenNotDeleting_ShouldPassFlagToProvider()
+    {
+        // Arrange
+        const string messageId = "msg123";
+        const string queueName = "queue1";
+
+        // Act
+        await _sut.ResubmitDeadLetterMessageAsync(_authContext, queueName, messageId, deleteFromDeadLetter: false);
+
+        // Assert
+        _mockResubmitProvider.Verify(x => x.ResubmitMessageAsync(queueName, messageId, null, false, It.IsAny<CancellationToken>()), Times.Once);
     }
 }
-

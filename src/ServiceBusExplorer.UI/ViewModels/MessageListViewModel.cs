@@ -1014,12 +1014,26 @@ public partial class MessageListViewModel : ObservableObject
             {
                 MessageCount = selectedMessages.Count,
                 IsMultiple = true,
-                IsDeadLetter = true // Bulk resubmit is only for dead letter messages
+                IsDeadLetter = true, // Bulk resubmit is only for dead letter messages
+                DeleteFromDeadLetter = true
             };
             var dialog = new ResubmitConfirmDialog { DataContext = dialogVm };
-            var result = await dialog.ShowDialog<bool>(mainWindow);
+
+            var confirmed = false;
+            var deleteFromDeadLetter = false;
+
+            void OnCloseRequested(object? sender, (bool confirmed, bool deleteFromDeadLetter) result)
+            {
+                dialogVm.CloseRequested -= OnCloseRequested;
+                confirmed = result.confirmed;
+                deleteFromDeadLetter = result.deleteFromDeadLetter;
+                dialog.Close();
+            }
+
+            dialogVm.CloseRequested += OnCloseRequested;
+            await dialog.ShowDialog(mainWindow);
             
-            if (!result)
+            if (!confirmed)
             {
                 return;
             }
@@ -1042,7 +1056,8 @@ public partial class MessageListViewModel : ObservableObject
                         _authContext,
                         _currentEntityPath!,
                         message.MessageId,
-                        _currentSubscription);
+                        _currentSubscription,
+                        deleteFromDeadLetter);
                     
                     successCount++;
                     _logService.LogInfo("MessageListViewModel", $"Message {message.MessageId} resubmitted successfully");

@@ -9,5 +9,6 @@ public interface IMessageResubmitProvider : IAsyncDisposable
         string queueOrTopic,
         string messageId,
         string? subscription = null,
+        bool deleteFromDeadLetter = true,
         CancellationToken cancellationToken = default);
 }
