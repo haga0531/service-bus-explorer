@@ -1,3 +1,5 @@
+using System.IO.Compression;
+using System.Text;
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 using ServiceBusExplorer.Infrastructure.Models;
@@ -35,8 +37,9 @@ public sealed class AzureMessagePeekProvider : IMessagePeekProvider
                 m.Subject ?? string.Empty,
                 m.ContentType ?? string.Empty,
                 m.EnqueuedTime,
-                m.Body.ToString(),
-                false))];
+                ProcessMessageBody(m.Body, m.ContentType),
+                false,
+                m.SessionId))];
     }
 
     public async Task<IReadOnlyList<ServiceBusReceivedMessageDto>> PeekDeadLetterAsync(
@@ -65,8 +68,9 @@ public sealed class AzureMessagePeekProvider : IMessagePeekProvider
                 m.Subject ?? string.Empty,
                 m.ContentType ?? string.Empty,
                 m.EnqueuedTime,
-                m.Body.ToString(),
-                true))];
+                ProcessMessageBody(m.Body, m.ContentType),
+                true,
+                m.SessionId))];
     }
 
     public async Task<PagedResult<ServiceBusReceivedMessageDto>> PeekPagedAsync(
@@ -138,8 +142,9 @@ public sealed class AzureMessagePeekProvider : IMessagePeekProvider
                 m.Subject ?? string.Empty,
                 m.ContentType ?? string.Empty,
                 m.EnqueuedTime,
-                m.Body.ToString(),
-                false))
+                ProcessMessageBody(m.Body, m.ContentType),
+                false,
+                m.SessionId))
             .ToList();
 
         return new PagedResult<ServiceBusReceivedMessageDto>
@@ -218,8 +223,9 @@ public sealed class AzureMessagePeekProvider : IMessagePeekProvider
                 m.Subject ?? string.Empty,
                 m.ContentType ?? string.Empty,
                 m.EnqueuedTime,
-                m.Body.ToString(),
-                true))
+                ProcessMessageBody(m.Body, m.ContentType),
+                true,
+                m.SessionId))
             .ToList();
 
         return new PagedResult<ServiceBusReceivedMessageDto>
@@ -423,5 +429,76 @@ public sealed class AzureMessagePeekProvider : IMessagePeekProvider
         {
             await asyncAdmin.DisposeAsync();
         }
+    }
+
+    /// <summary>
+    /// Content-Typeに基づいてメッセージボディを解凍・変換する
+    /// </summary>
+    private static string ProcessMessageBody(BinaryData body, string? contentType)
+    {
+        var bytes = body.ToArray();
+
+        if (IsCompressedContentType(contentType))
+        {
+            try
+            {
+                // GZip解凍を試みる
+                var decompressed = TryDecompressGZip(bytes);
+                if (decompressed != null)
+                    return Encoding.UTF8.GetString(decompressed);
+
+                // ZIP解凍を試みる
+                decompressed = TryDecompressZip(bytes);
+                if (decompressed != null)
+                    return Encoding.UTF8.GetString(decompressed);
+            }
+            catch
+            {
+                // 解凍失敗 - Base64で表示
+            }
+
+            // 解凍できない場合はBase64で表示
+            return $"[Binary data - Base64 encoded]\n{Convert.ToBase64String(bytes)}";
+        }
+
+        // 非圧縮の場合、通常の文字列変換を試みる
+        return body.ToString();
+    }
+
+    private static bool IsCompressedContentType(string? contentType)
+    {
+        if (string.IsNullOrEmpty(contentType)) return false;
+        var ct = contentType.ToLowerInvariant();
+        return ct.Contains("zip") || ct.Contains("gzip") || ct.Contains("deflate") || ct.Contains("compressed");
+    }
+
+    private static byte[]? TryDecompressGZip(byte[] data)
+    {
+        try
+        {
+            using var inputStream = new MemoryStream(data);
+            using var gzipStream = new GZipStream(inputStream, CompressionMode.Decompress);
+            using var outputStream = new MemoryStream();
+            gzipStream.CopyTo(outputStream);
+            return outputStream.ToArray();
+        }
+        catch { return null; }
+    }
+
+    private static byte[]? TryDecompressZip(byte[] data)
+    {
+        try
+        {
+            using var archive = new ZipArchive(new MemoryStream(data), ZipArchiveMode.Read);
+            if (archive.Entries.Count > 0)
+            {
+                using var stream = archive.Entries[0].Open();
+                using var outputStream = new MemoryStream();
+                stream.CopyTo(outputStream);
+                return outputStream.ToArray();
+            }
+            return null;
+        }
+        catch { return null; }
     }
 }

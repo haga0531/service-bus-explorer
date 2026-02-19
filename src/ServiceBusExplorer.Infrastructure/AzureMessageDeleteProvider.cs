@@ -21,17 +21,35 @@ public sealed class AzureMessageDeleteProvider : IMessageDeleteProvider
     {
         Console.WriteLine($"[AzureMessageDeleteProvider] DeleteActiveMessageAsync called - Queue/Topic: {queueOrTopic}, Subscription: {subscription ?? "null"}, MessageId: {messageId}");
 
+        try
+        {
+            await DeleteWithNonSessionReceiverAsync(queueOrTopic, subscription, messageId, SubQueue.None, cancellationToken);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("session"))
+        {
+            Console.WriteLine($"[AzureMessageDeleteProvider] Queue requires sessions, switching to session-based delete");
+            await DeleteWithSessionReceiverAsync(queueOrTopic, subscription, messageId, cancellationToken);
+        }
+    }
+
+    private async Task DeleteWithNonSessionReceiverAsync(
+        string queueOrTopic,
+        string? subscription,
+        string messageId,
+        SubQueue subQueue,
+        CancellationToken cancellationToken)
+    {
         var receiver = subscription is null
             ? _client.CreateReceiver(queueOrTopic, new ServiceBusReceiverOptions
                 {
                     ReceiveMode = ServiceBusReceiveMode.PeekLock,
-                    SubQueue = SubQueue.None
+                    SubQueue = subQueue
                 })
             : _client.CreateReceiver(queueOrTopic, subscription,
                 new ServiceBusReceiverOptions
                 {
                     ReceiveMode = ServiceBusReceiveMode.PeekLock,
-                    SubQueue = SubQueue.None
+                    SubQueue = subQueue
                 });
 
         try
@@ -48,7 +66,7 @@ public sealed class AzureMessageDeleteProvider : IMessageDeleteProvider
 
                 if (!messages.Any())
                 {
-                    Console.WriteLine($"[AzureMessageDeleteProvider] No more messages in active queue");
+                    Console.WriteLine($"[AzureMessageDeleteProvider] No more messages in queue");
                     break;
                 }
 
@@ -61,26 +79,105 @@ public sealed class AzureMessageDeleteProvider : IMessageDeleteProvider
                     if (message.MessageId == messageId)
                     {
                         Console.WriteLine($"[AzureMessageDeleteProvider] Found target message! Attempting to complete...");
-                        // Found the target message, complete it to remove from active queue
                         await receiver.CompleteMessageAsync(message, cancellationToken);
-                        Console.WriteLine($"[AzureMessageDeleteProvider] Successfully deleted message {messageId} from active queue");
+                        Console.WriteLine($"[AzureMessageDeleteProvider] Successfully deleted message {messageId}");
                         return;
                     }
                     else
                     {
-                        // Not the target message, abandon it so it remains in the queue
                         Console.WriteLine($"[AzureMessageDeleteProvider] Not the target message, abandoning {message.MessageId}");
                         await receiver.AbandonMessageAsync(message, cancellationToken: cancellationToken);
                     }
                 }
             }
 
-            Console.WriteLine($"[AzureMessageDeleteProvider] Message {messageId} not found in active queue after {maxAttempts} attempts");
+            Console.WriteLine($"[AzureMessageDeleteProvider] Message {messageId} not found after {maxAttempts} attempts");
         }
         finally
         {
             await receiver.DisposeAsync();
         }
+    }
+
+    private async Task DeleteWithSessionReceiverAsync(
+        string queueOrTopic,
+        string? subscription,
+        string messageId,
+        CancellationToken cancellationToken)
+    {
+        var sessionTimeout = TimeSpan.FromSeconds(3);
+        var maxSessionAttempts = 5;
+
+        for (var sessionAttempt = 0; sessionAttempt < maxSessionAttempts; sessionAttempt++)
+        {
+            ServiceBusSessionReceiver? sessionReceiver = null;
+            try
+            {
+                var options = new ServiceBusSessionReceiverOptions
+                {
+                    ReceiveMode = ServiceBusReceiveMode.PeekLock
+                };
+
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeoutCts.CancelAfter(sessionTimeout);
+
+                sessionReceiver = subscription is null
+                    ? await _client.AcceptNextSessionAsync(queueOrTopic, options, timeoutCts.Token)
+                    : await _client.AcceptNextSessionAsync(queueOrTopic, subscription, options, timeoutCts.Token);
+
+                Console.WriteLine($"[AzureMessageDeleteProvider] Accepted session: {sessionReceiver.SessionId}");
+
+                var maxAttempts = 10;
+                var batchSize = 10;
+
+                for (var i = 0; i < maxAttempts; i++)
+                {
+                    var messages = await sessionReceiver.ReceiveMessagesAsync(
+                        maxMessages: batchSize,
+                        maxWaitTime: TimeSpan.FromSeconds(1),
+                        cancellationToken: cancellationToken);
+
+                    if (!messages.Any())
+                    {
+                        break;
+                    }
+
+                    foreach (var message in messages)
+                    {
+                        if (message.MessageId == messageId)
+                        {
+                            Console.WriteLine($"[AzureMessageDeleteProvider] Found target message in session {sessionReceiver.SessionId}!");
+                            await sessionReceiver.CompleteMessageAsync(message, cancellationToken);
+                            Console.WriteLine($"[AzureMessageDeleteProvider] Successfully deleted message {messageId}");
+                            return;
+                        }
+                        else
+                        {
+                            await sessionReceiver.AbandonMessageAsync(message, cancellationToken: cancellationToken);
+                        }
+                    }
+                }
+            }
+            catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.ServiceTimeout)
+            {
+                Console.WriteLine($"[AzureMessageDeleteProvider] No more sessions available");
+                break;
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                Console.WriteLine($"[AzureMessageDeleteProvider] Session accept timed out");
+                break;
+            }
+            finally
+            {
+                if (sessionReceiver != null)
+                {
+                    await sessionReceiver.DisposeAsync();
+                }
+            }
+        }
+
+        Console.WriteLine($"[AzureMessageDeleteProvider] Message {messageId} not found in any session");
     }
 
     public async Task DeleteDeadLetterMessageAsync(

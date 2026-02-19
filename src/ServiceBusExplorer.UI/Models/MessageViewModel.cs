@@ -10,7 +10,8 @@ public class MessageViewModel(
     string contentType,
     DateTimeOffset enqueuedTime,
     string body,
-    bool isDeadLetter = false) : INotifyPropertyChanged
+    bool isDeadLetter = false,
+    string? sessionId = null) : INotifyPropertyChanged
 {
     private bool _isSelected;
 
@@ -20,6 +21,7 @@ public class MessageViewModel(
     public DateTimeOffset EnqueuedTime { get; } = enqueuedTime;
     public string Body { get; } = body;
     public bool IsDeadLetter { get; } = isDeadLetter;
+    public string? SessionId { get; } = sessionId;
     public string Status => IsDeadLetter ? "Dead Letter" : "Active";
     public string StatusColor => IsDeadLetter ? "Red" : "Green";
     

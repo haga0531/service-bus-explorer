@@ -1,3 +1,5 @@
+using System.IO.Compression;
+using System.Text;
 using Azure.Messaging.ServiceBus;
 using ServiceBusExplorer.Infrastructure.Models;
 
@@ -20,6 +22,7 @@ public sealed class AzureMessageSendProvider : IMessageSendProvider
         Dictionary<string, object>? properties = null,
         string? contentType = null,
         string? label = null,
+        string? sessionId = null,
         CancellationToken ct = default)
     {
         // Note: You cannot send messages directly to a subscription
@@ -31,11 +34,27 @@ public sealed class AzureMessageSendProvider : IMessageSendProvider
 
         await using var sender = _client.CreateSender(queueOrTopic);
 
-        var message = new Azure.Messaging.ServiceBus.ServiceBusMessage(messageBody)
+        // Content-Typeが圧縮形式を示す場合、メッセージボディを圧縮
+        Azure.Messaging.ServiceBus.ServiceBusMessage message;
+        if (IsCompressedContentType(contentType))
         {
-            ContentType = contentType,
-            Subject = label
-        };
+            var compressedBody = CompressGZip(Encoding.UTF8.GetBytes(messageBody));
+            message = new Azure.Messaging.ServiceBus.ServiceBusMessage(compressedBody)
+            {
+                ContentType = contentType,
+                Subject = label,
+                SessionId = sessionId
+            };
+        }
+        else
+        {
+            message = new Azure.Messaging.ServiceBus.ServiceBusMessage(messageBody)
+            {
+                ContentType = contentType,
+                Subject = label,
+                SessionId = sessionId
+            };
+        }
 
         if (properties != null)
         {
@@ -65,11 +84,25 @@ public sealed class AzureMessageSendProvider : IMessageSendProvider
 
         foreach (var msg in messages)
         {
-            var serviceBusMessage = new Azure.Messaging.ServiceBus.ServiceBusMessage(msg.Body)
+            // Content-Typeが圧縮形式を示す場合、メッセージボディを圧縮
+            Azure.Messaging.ServiceBus.ServiceBusMessage serviceBusMessage;
+            if (IsCompressedContentType(msg.ContentType))
             {
-                ContentType = msg.ContentType,
-                Subject = msg.Label
-            };
+                var compressedBody = CompressGZip(Encoding.UTF8.GetBytes(msg.Body));
+                serviceBusMessage = new Azure.Messaging.ServiceBus.ServiceBusMessage(compressedBody)
+                {
+                    ContentType = msg.ContentType,
+                    Subject = msg.Label
+                };
+            }
+            else
+            {
+                serviceBusMessage = new Azure.Messaging.ServiceBus.ServiceBusMessage(msg.Body)
+                {
+                    ContentType = msg.ContentType,
+                    Subject = msg.Label
+                };
+            }
 
             if (msg.Properties != null)
             {
@@ -102,5 +135,22 @@ public sealed class AzureMessageSendProvider : IMessageSendProvider
     public async ValueTask DisposeAsync()
     {
         await _client.DisposeAsync();
+    }
+
+    private static bool IsCompressedContentType(string? contentType)
+    {
+        if (string.IsNullOrEmpty(contentType)) return false;
+        var ct = contentType.ToLowerInvariant();
+        return ct.Contains("zip") || ct.Contains("gzip") || ct.Contains("deflate") || ct.Contains("compressed");
+    }
+
+    private static byte[] CompressGZip(byte[] data)
+    {
+        using var outputStream = new MemoryStream();
+        using (var gzipStream = new GZipStream(outputStream, CompressionMode.Compress, leaveOpen: true))
+        {
+            gzipStream.Write(data, 0, data.Length);
+        }
+        return outputStream.ToArray();
     }
 }
