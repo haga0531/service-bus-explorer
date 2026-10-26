@@ -343,7 +343,8 @@ public partial class MessageListViewModel : ObservableObject
                     message.ContentType ?? "",
                     message.EnqueuedTime,
                     bodyText.Trim(),
-                    message.IsDeadLetter);
+                    message.IsDeadLetter,
+                    message.ApplicationProperties);
                 
                 // Subscribe to property changes to update selection count
                 messageViewModel.PropertyChanged += OnMessagePropertyChanged;
@@ -500,7 +501,8 @@ public partial class MessageListViewModel : ObservableObject
                 SelectedMessage.ContentType,
                 SelectedMessage.EnqueuedTime,
                 formattedJson,
-                SelectedMessage.IsDeadLetter);
+                SelectedMessage.IsDeadLetter,
+                SelectedMessage.ApplicationProperties);
                 
             // Update the selected message
             var index = Messages.IndexOf(SelectedMessage);
@@ -525,7 +527,8 @@ public partial class MessageListViewModel : ObservableObject
                     SelectedMessage.ContentType,
                     SelectedMessage.EnqueuedTime,
                     formattedXml,
-                    SelectedMessage.IsDeadLetter);
+                    SelectedMessage.IsDeadLetter,
+                    SelectedMessage.ApplicationProperties);
                     
                 // Update the selected message
                 var index = Messages.IndexOf(SelectedMessage);

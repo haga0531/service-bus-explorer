@@ -1,3 +1,4 @@
+using System.Globalization;
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 using ServiceBusExplorer.Infrastructure.Models;
@@ -15,6 +16,11 @@ public sealed class AzureMessagePeekProvider : IMessagePeekProvider
         _client = authContext.CreateServiceBusClient();
         _adminClient = authContext.CreateAdminClient();
     }
+
+    private static IReadOnlyDictionary<string, string> ReadApplicationProperties(ServiceBusReceivedMessage message) =>
+        message.ApplicationProperties.ToDictionary(
+            p => p.Key,
+            p => Convert.ToString(p.Value, CultureInfo.InvariantCulture) ?? string.Empty);
 
     public async Task<IReadOnlyList<ServiceBusReceivedMessageDto>> PeekAsync(
         string queueOrTopic,
@@ -36,7 +42,8 @@ public sealed class AzureMessagePeekProvider : IMessagePeekProvider
                 m.ContentType ?? string.Empty,
                 m.EnqueuedTime,
                 m.Body.ToString(),
-                false))];
+                false,
+                ReadApplicationProperties(m)))];
     }
 
     public async Task<IReadOnlyList<ServiceBusReceivedMessageDto>> PeekDeadLetterAsync(
@@ -66,7 +73,8 @@ public sealed class AzureMessagePeekProvider : IMessagePeekProvider
                 m.ContentType ?? string.Empty,
                 m.EnqueuedTime,
                 m.Body.ToString(),
-                true))];
+                true,
+                ReadApplicationProperties(m)))];
     }
 
     public async Task<PagedResult<ServiceBusReceivedMessageDto>> PeekPagedAsync(
@@ -139,7 +147,8 @@ public sealed class AzureMessagePeekProvider : IMessagePeekProvider
                 m.ContentType ?? string.Empty,
                 m.EnqueuedTime,
                 m.Body.ToString(),
-                false))
+                false,
+                ReadApplicationProperties(m)))
             .ToList();
 
         return new PagedResult<ServiceBusReceivedMessageDto>
@@ -219,7 +228,8 @@ public sealed class AzureMessagePeekProvider : IMessagePeekProvider
                 m.ContentType ?? string.Empty,
                 m.EnqueuedTime,
                 m.Body.ToString(),
-                true))
+                true,
+                ReadApplicationProperties(m)))
             .ToList();
 
         return new PagedResult<ServiceBusReceivedMessageDto>

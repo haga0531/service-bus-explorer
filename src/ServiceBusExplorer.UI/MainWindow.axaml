@@ -5,7 +5,7 @@
         xmlns:view="clr-namespace:ServiceBusExplorer.UI"
         x:Class="ServiceBusExplorer.UI.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Width="1400" Height="900" 
+        Width="1400" Height="900"
         MinWidth="1000" MinHeight="600"
         Title="Service Bus Explorer">
 
@@ -19,13 +19,13 @@
             </Setter>
             <Setter Property="Padding" Value="2" />
         </Style>
-        <Style Selector="TreeViewItem:pointerover /template/ Border#PART_Border">
+        <Style Selector="TreeViewItem:pointerover /template/ Border#PART_LayoutRoot">
             <Setter Property="Background" Value="#E8E8E8" />
         </Style>
-        <Style Selector="TreeViewItem:selected /template/ Border#PART_Border">
+        <Style Selector="TreeViewItem:selected /template/ Border#PART_LayoutRoot">
             <Setter Property="Background" Value="#0078D4" />
         </Style>
-        <Style Selector="TreeViewItem:selected TextBlock">
+        <Style Selector="TreeViewItem:selected /template/ ContentPresenter#PART_HeaderPresenter">
             <Setter Property="Foreground" Value="White" />
         </Style>
     </Window.Styles>
@@ -39,10 +39,13 @@
             <StackPanel Orientation="Horizontal" Spacing="6" Margin="8"
                         Grid.Row="0" Grid.ColumnSpan="3">
                 <Button Content="Connect" Command="{Binding ConnectCommand}" />
+                <Button Content="↻ Refresh All"
+                        Command="{Binding RefreshAllCommand}"
+                        ToolTip.Tip="Reload message counts for all queues and subscriptions, and the open message list" />
             </StackPanel>
 
             <!-- Left: Namespace Tree -->
-            <Border Grid.Row="1" Grid.Column="0" 
+            <Border Grid.Row="1" Grid.Column="0"
                     BorderBrush="LightGray" BorderThickness="0,0,1,0">
                 <Grid>
                     <!-- TreeView Content -->
@@ -58,10 +61,10 @@
                             <TreeDataTemplate DataType="models:NamespaceNode"
                                               ItemsSource="{Binding Children}">
                                 <StackPanel Orientation="Horizontal" Spacing="5">
-                                    <TextBlock Text="{Binding Icon}" 
+                                    <TextBlock Text="{Binding Icon}"
                                                VerticalAlignment="Center"
                                                FontSize="14" />
-                                    <TextBlock Text="{Binding DisplayName}" 
+                                    <TextBlock Text="{Binding DisplayName}"
                                                VerticalAlignment="Center"
                                                Padding="2"
                                                FontSize="12"
@@ -82,7 +85,7 @@
                         </TreeView.ItemTemplate>
                         </TreeView>
                     </ScrollViewer>
-                    
+
                     <!-- Loading indicator for TreeView -->
                     <Border Background="#F5F5F5"
                             IsVisible="{Binding IsConnecting}">
@@ -101,8 +104,8 @@
             </Border>
 
             <!-- Splitter -->
-            <GridSplitter Grid.Row="1" Grid.Column="1" 
-                          Width="5" 
+            <GridSplitter Grid.Row="1" Grid.Column="1"
+                          Width="5"
                           HorizontalAlignment="Stretch"
                           Background="LightGray" />
 
@@ -112,7 +115,7 @@
                 <Panel IsVisible="{Binding MessageList, Converter={x:Static ObjectConverters.IsNotNull}}">
                     <view:MessageListView DataContext="{Binding MessageList}" />
                 </Panel>
-                
+
                 <!-- Not connected message -->
                 <TextBlock Text="Connect to a Service Bus namespace to view messages"
                            HorizontalAlignment="Center"
@@ -122,19 +125,19 @@
                            IsVisible="{Binding MessageList, Converter={x:Static ObjectConverters.IsNull}}" />
             </Grid>
         </Grid>
-        
+
         <!-- Error Message Banner -->
-        <Border Background="#FFCC0000" 
+        <Border Background="#FFCC0000"
                 Padding="10,5"
                 VerticalAlignment="Top"
                 HorizontalAlignment="Stretch"
                 IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
             <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{Binding ErrorMessage}" 
+                <TextBlock Text="{Binding ErrorMessage}"
                            Foreground="White"
                            TextWrapping="Wrap"
                            VerticalAlignment="Center" />
-                <Button Grid.Column="1" 
+                <Button Grid.Column="1"
                         Content="✕"
                         Background="Transparent"
                         Foreground="White"
@@ -143,15 +146,15 @@
                         Command="{Binding ClearErrorCommand}" />
             </Grid>
         </Border>
-            
+
             <!-- Splitter between main content and log panel -->
-            <GridSplitter Grid.Row="1" 
+            <GridSplitter Grid.Row="1"
                           Height="5"
                           HorizontalAlignment="Stretch"
                           Background="LightGray" />
-            
+
             <!-- Log panel -->
-            <view:LogView Grid.Row="2" 
+            <view:LogView Grid.Row="2"
                           DataContext="{Binding LogViewModel}" />
         </Grid>
     </Grid>

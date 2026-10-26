@@ -57,6 +57,41 @@ public class MessageViewModelTests
     }
 
     [Test]
+    public void DeadLetterReason_ShouldBeReadFromApplicationProperties()
+    {
+        // Arrange
+        var properties = new Dictionary<string, string>
+        {
+            ["DeadLetterReason"] = "MaxDeliveryCountExceeded",
+            ["DeadLetterErrorDescription"] = "Message could not be consumed after 10 delivery attempts.",
+            ["tenant"] = "contoso"
+        };
+
+        // Act
+        var sut = new MessageViewModel("id", "label", "type", DateTimeOffset.Now, "body", true, properties);
+
+        // Assert
+        sut.HasDeadLetterReason.Should().BeTrue();
+        sut.DeadLetterReason.Should().Be("MaxDeliveryCountExceeded");
+        sut.DeadLetterErrorDescription.Should().Be("Message could not be consumed after 10 delivery attempts.");
+        sut.HasProperties.Should().BeTrue();
+        sut.Properties.Select(p => p.Key).Should().ContainInOrder("DeadLetterErrorDescription", "DeadLetterReason", "tenant");
+    }
+
+    [Test]
+    public void Properties_WhenNoneProvided_ShouldBeEmpty()
+    {
+        // Arrange & Act
+        var sut = new MessageViewModel("id", "label", "type", DateTimeOffset.Now, "body", true);
+
+        // Assert
+        sut.HasProperties.Should().BeFalse();
+        sut.Properties.Should().BeEmpty();
+        sut.HasDeadLetterReason.Should().BeFalse();
+        sut.DeadLetterReason.Should().BeNull();
+    }
+
+    [Test]
     public void IsSelected_WhenChanged_ShouldRaisePropertyChangedEvent()
     {
         // Arrange

@@ -55,6 +55,7 @@ public partial class MainWindowViewModel : ObservableObject
     public IRelayCommand ClearErrorCommand { get; }
     public IRelayCommand RefreshNodeCommand { get; }
     public IRelayCommand NodeExpandedCommand { get; }
+    public IRelayCommand RefreshAllCommand { get; }
     
     public MainWindowViewModel(
         Func<ConnectDialogViewModel> dialogVmFactory,
@@ -71,7 +72,8 @@ public partial class MainWindowViewModel : ObservableObject
         ConnectCommand    = new AsyncRelayCommand(OpenConnectDialogAsync);
         ClearErrorCommand = new RelayCommand(() => ErrorMessage = null);
         RefreshNodeCommand = new AsyncRelayCommand<NamespaceNode>(RefreshNodeAsync);
-        NodeExpandedCommand = new AsyncRelayCommand<NamespaceNode>(LoadNodeMessageCountsAsync);
+        NodeExpandedCommand = new AsyncRelayCommand<NamespaceNode>(node => LoadNodeMessageCountsAsync(node));
+        RefreshAllCommand = new AsyncRelayCommand(RefreshAllAsync, () => _currentAuthContext is not null);
     }
 
     partial void OnSelectedNodeChanged(NamespaceNode? value)
@@ -201,6 +203,7 @@ public partial class MainWindowViewModel : ObservableObject
 
             // Save auth context
             _currentAuthContext = result.authContext;
+            RefreshAllCommand.NotifyCanExecuteChanged();
 
             _logService.LogInfo("MainWindowViewModel", "Connecting to Service Bus namespace");
 
@@ -237,7 +240,7 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
     
-    private async Task LoadNodeMessageCountsAsync(NamespaceNode? node)
+    private async Task LoadNodeMessageCountsAsync(NamespaceNode? node, bool forceReload = false)
     {
         if (node == null || _currentAuthContext == null)
         {
@@ -313,7 +316,7 @@ public partial class MainWindowViewModel : ObservableObject
             
             foreach (var child in node.Children)
             {
-                if (child.IsQueue && !child.MessageCountsLoaded)
+                if (child.IsQueue && (forceReload || !child.MessageCountsLoaded))
                 {
                     tasks.Add(Task.Run(async () =>
                     {
@@ -347,7 +350,7 @@ public partial class MainWindowViewModel : ObservableObject
                         }
                     }));
                 }
-                else if (child.IsSubscription && !child.MessageCountsLoaded && child.Parent != null)
+                else if (child.IsSubscription && (forceReload || !child.MessageCountsLoaded) && child.Parent != null)
                 {
                     tasks.Add(Task.Run(async () =>
                     {
@@ -389,6 +392,32 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
     
+    private async Task RefreshAllAsync()
+    {
+        if (_currentAuthContext is null)
+        {
+            return;
+        }
+
+        // Only nodes whose children already show counts (i.e. expanded folders/topics) are refreshed
+        var parents = Flatten(Nodes)
+            .Where(n => n.Children.Any(c => c.MessageCountsLoaded || c.HasAutoForwarding))
+            .ToList();
+
+        _logService.LogInfo("MainWindowViewModel", $"User initiated refresh of all message counts ({parents.Count} expanded nodes)");
+
+        await Task.WhenAll(parents.Select(parent => LoadNodeMessageCountsAsync(parent, forceReload: true)));
+
+        // Also reload the currently open message list so it matches the refreshed counts
+        if (SelectedNode is { IsQueue: true } or { IsSubscription: true })
+        {
+            await RefreshNodeAsync(SelectedNode);
+        }
+    }
+
+    private static IEnumerable<NamespaceNode> Flatten(IEnumerable<NamespaceNode> nodes) =>
+        nodes.SelectMany(n => Flatten(n.Children).Prepend(n));
+
     private async Task RefreshNodeAsync(NamespaceNode? node)
     {
         if (node is null || node.EntityType is null || MessageList is null)

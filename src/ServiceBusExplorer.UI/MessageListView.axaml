@@ -13,7 +13,14 @@
 
     <Grid>
         <!-- Main content -->
-        <Grid RowDefinitions="Auto,Auto,*,5,Auto">
+        <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" MinHeight="120" />
+            <RowDefinition Height="5" />
+            <RowDefinition Height="*" MinHeight="220" />
+        </Grid.RowDefinitions>
         <!-- Count labels with Send Message button -->
         <Border Grid.Row="0" 
                 Background="#F5F5F5" 
@@ -301,7 +308,12 @@
                            
                 <!-- Show when a message is selected -->
                 <Grid IsVisible="{Binding SelectedMessage, Converter={x:Static ObjectConverters.IsNotNull}}">
-                    <Grid RowDefinitions="Auto,*" Margin="10">
+                    <!-- Whole details pane scrolls when it is too short; the body area below keeps a minimum
+                         height and otherwise fills (but never exceeds) the visible height -->
+                    <ScrollViewer Name="DetailsScroll"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto">
+                    <Grid RowDefinitions="Auto,Auto,*" Margin="10">
                         <!-- Message Info Header -->
                         <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto,Auto" Margin="0,0,0,10">
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="Message ID: " FontWeight="Bold" Margin="0,0,5,5" />
@@ -321,9 +333,35 @@
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="Enqueued: " FontWeight="Bold" Margin="0,0,5,0" />
                             <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding SelectedMessage.EnqueuedTime}" />
                         </Grid>
-                        
+
+                        <!-- Dead-letter reason (from DeadLetterReason / DeadLetterErrorDescription properties) -->
+                        <Border Grid.Row="1"
+                                Background="#FFEBEE"
+                                BorderBrush="#F44336"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="8,6,2,6"
+                                Margin="0,0,0,10"
+                                MaxHeight="140"
+                                IsVisible="{Binding SelectedMessage.HasDeadLetterReason}">
+                            <!-- Long descriptions (e.g. stack traces) scroll here instead of pushing the body out of view -->
+                            <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                          VerticalScrollBarVisibility="Auto">
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" Margin="0,0,6,0">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Dead-letter reason: " FontWeight="Bold" Foreground="#B71C1C" Margin="0,0,5,2" />
+                                    <SelectableTextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedMessage.DeadLetterReason}" TextWrapping="Wrap" Margin="0,0,0,2" />
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Description: " FontWeight="Bold" Foreground="#B71C1C" Margin="0,0,5,0" />
+                                    <SelectableTextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedMessage.DeadLetterErrorDescription}" TextWrapping="Wrap" />
+                                </Grid>
+                            </ScrollViewer>
+                        </Border>
+
+                        <Grid Grid.Row="2"
+                              ColumnDefinitions="*,5,320"
+                              MinHeight="220"
+                              MaxHeight="{Binding #DetailsScroll.Viewport.Height}">
                         <!-- Message Body -->
-                        <Grid Grid.Row="1" RowDefinitions="Auto,*">
+                        <Grid Grid.Column="0" RowDefinitions="Auto,*">
                             <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto" Margin="0,0,0,5">
                                 <TextBlock Grid.Column="0" Text="Message Body:" FontWeight="Bold" VerticalAlignment="Center" />
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Left" Margin="10,0,0,0">
@@ -385,13 +423,59 @@
                                              AcceptsReturn="True"
                                              TextWrapping="NoWrap"
                                              FontFamily="Cascadia Code,Consolas,Menlo,Monaco,monospace"
-                                             FontSize="13"
-                                             Padding="8"
+                                             FontSize="12"
+                                             Padding="6"
                                              Background="White" />
                                 </ScrollViewer>
                             </Border>
                         </Grid>
+
+                        <GridSplitter Grid.Column="1"
+                                      Background="Transparent"
+                                      ResizeDirection="Columns" />
+
+                        <!-- Custom (application) properties -->
+                        <Grid Grid.Column="2" RowDefinitions="Auto,*">
+                            <TextBlock Grid.Row="0"
+                                       Text="{Binding SelectedMessage.Properties.Count, StringFormat='Custom Properties ({0})'}"
+                                       FontWeight="Bold"
+                                       VerticalAlignment="Center"
+                                       Height="26"
+                                       Padding="0,4,0,0"
+                                       Margin="0,0,0,5" />
+                            <Border Grid.Row="1"
+                                    BorderBrush="LightGray"
+                                    BorderThickness="1"
+                                    Background="White">
+                                <Grid>
+                                    <TextBlock Text="No custom properties"
+                                               Foreground="Gray"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               IsVisible="{Binding !SelectedMessage.HasProperties}" />
+                                    <ScrollViewer IsVisible="{Binding SelectedMessage.HasProperties}">
+                                        <ItemsControl ItemsSource="{Binding SelectedMessage.Properties}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="models:MessageProperty">
+                                                    <Border BorderBrush="#EEEEEE" BorderThickness="0,0,0,1" Padding="6,4">
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding Key}" FontWeight="Bold" FontSize="12" />
+                                                            <SelectableTextBlock Text="{Binding Value}"
+                                                                                 FontFamily="Cascadia Code,Consolas,Menlo,Monaco,monospace"
+                                                                                 FontSize="12"
+                                                                                 TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                        </Grid>
                     </Grid>
+                    </ScrollViewer>
                 </Grid>
             </Grid>
         </Border>
